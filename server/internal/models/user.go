@@ -3,11 +3,15 @@ package models
 import "time"
 
 type User struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name" validate:"required"`
+	Id        int       `json:"id"`
 	Username  string    `json:"username" validate:"required"`
-	Email     string    `json:"email" validate:"required,email"`
-	Password  string    `json:"-"`
+	Password  string    `json:"password"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type LoginSession struct {
+	Id     int    `json:"id"`
+	UserId int    `json:"userId"`
+	Token  string `json:"token"`
 }

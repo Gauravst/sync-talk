@@ -11,12 +11,19 @@ import (
 	"time"
 
 	"github.com/gauravst/real-time-chat/internal/api/handlers"
-	"github.com/gauravst/real-time-chat/internal/api/middleware"
 	"github.com/gauravst/real-time-chat/internal/config"
 	"github.com/gauravst/real-time-chat/internal/database"
 	"github.com/gauravst/real-time-chat/internal/repositories"
 	"github.com/gauravst/real-time-chat/internal/services"
+	"github.com/gorilla/websocket"
 )
+
+// upgrader to upgrade HTTP connection to Websocket
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 func main() {
 	// load config
@@ -26,16 +33,21 @@ func main() {
 	database.InitDB(cfg.DatabaseUri)
 	defer database.CloseDB()
 
-	//setup router
+	// setup router
 	router := http.NewServeMux()
 
-	userRepo := repositories.NewUserRepository(database.DB)
-	userService := services.NewUserService(userRepo)
+	// Initialize repositories and services
+	// userRepo := repositories.NewUserRepository(database.DB)
+	// userService := services.NewUserService(userRepo)
 
-	router.HandleFunc("GET /api/user", middleware.Auth(handlers.GetUser(userService)))
-	router.HandleFunc("POST /api/user", handlers.CreateUser(userService))
-	router.HandleFunc("PUT /api/user", middleware.Auth(handlers.UpdateUser(userService)))
-	router.HandleFunc("DELETE /api/user", middleware.Auth(handlers.DeleteUser(userService)))
+	authRepo := repositories.NewAuthRepository(database.DB)
+	authService := services.NewAuthService(authRepo)
+
+	// REST API routes
+	router.HandleFunc("POST /api/user", handlers.LoginUser(authService, *cfg))
+
+	// WebSocket route
+	router.HandleFunc("/chat/{id}", handlers.LiveChat(*cfg, upgrader))
 
 	// setup server
 	server := &http.Server{
@@ -46,13 +58,12 @@ func main() {
 	slog.Info("server started", slog.String("address", cfg.Address))
 
 	done := make(chan os.Signal, 1)
-
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		err := server.ListenAndServe()
-		if err != nil {
-			log.Fatal("failed to start server")
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal("failed to start server", slog.String("error", err.Error()))
 		}
 	}()
 
@@ -65,8 +76,8 @@ func main() {
 
 	err := server.Shutdown(ctx)
 	if err != nil {
-		slog.Error("faild to Shutdown server", slog.String("error", err.Error()))
+		slog.Error("failed to shutdown server", slog.String("error", err.Error()))
 	}
 
-	slog.Info("server Shutdown successfully")
+	slog.Info("server shutdown successfully")
 }
