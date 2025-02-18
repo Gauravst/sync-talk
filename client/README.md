@@ -48,3 +48,4 @@ export default tseslint.config({
   },
 })
 ```
+# vite-react-tailwindcss-shadcn-project-starter
