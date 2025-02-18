@@ -18,6 +18,26 @@ import (
 
 func GetAllUsers(userService services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var userData models.User
+		userData, ok := r.Context().Value(userDataKey).(models.User)
+		if !ok {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			return
+		}
+
+		if userData.Role != "ADMIN" {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized user")))
+			return
+		}
+
+		data, err := userService.GetAllUsers()
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, data)
+		return
 	}
 }
 

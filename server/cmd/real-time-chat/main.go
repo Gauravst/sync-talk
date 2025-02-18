@@ -16,15 +16,7 @@ import (
 	"github.com/gauravst/real-time-chat/internal/database"
 	"github.com/gauravst/real-time-chat/internal/repositories"
 	"github.com/gauravst/real-time-chat/internal/services"
-	"github.com/gorilla/websocket"
 )
-
-// upgrader to upgrade HTTP connection to Websocket
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
 
 func main() {
 	// load config
@@ -111,7 +103,7 @@ func main() {
 	)
 
 	// WebSocket route
-	router.HandleFunc("/chat/{id}", handlers.LiveChat(*cfg, upgrader))
+	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg))
 
 	// setup server
 	server := &http.Server{

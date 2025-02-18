@@ -12,6 +12,9 @@ type ChatRepository interface {
 	UpdateChatRoom(data *models.ChatRoomRequest) error
 	DeleteChatRoom(name string) error
 	CreateNewChatRoom(data *models.ChatRoomRequest) error
+	CheckChatRoomMember(userId int, roomName string) (bool, error)
+	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
+	CreateNewMessage(data *models.MessageRequest, roomName string) error
 }
 
 // userRepository implements the AuthRepository interface
@@ -84,6 +87,43 @@ func (r *chatRepository) DeleteChatRoom(name string) error {
 func (r *chatRepository) CreateNewChatRoom(data *models.ChatRoomRequest) error {
 	query := `INSERT INTO chatRoom (name, userId) VALUES ($1, $2)`
 	_, err := r.db.Exec(query, data.Name, data.UserId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *chatRepository) CheckChatRoomMember(userId int, roomName string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM groupMembers WHERE userId = $1 AND roomName = $2)`
+	err := r.db.QueryRow(query, userId, roomName).Scan(&exists)
+	return exists, err
+}
+
+func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error) {
+	var messages []*models.MessageRequest
+	query := `SELECT userId, content, createdAt FROM messages WHERE roomName = $1 ORDER BY createdAt DESC LIMIT $2`
+
+	rows, err := r.db.Query(query, roomName, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var msg *models.MessageRequest
+		err := rows.Scan(&msg.UserId, &msg.Content, &msg.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
+}
+
+func (r *chatRepository) CreateNewMessage(data *models.MessageRequest, roomName string) error {
+	query := `INSERT INTO messages (userId, roomName, content ) VALUES ($1, $2, $3)`
+	_, err := r.db.Exec(query, data.UserId, roomName, data.Content)
 	if err != nil {
 		return err
 	}

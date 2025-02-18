@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/gauravst/real-time-chat/internal/config"
 	"github.com/gauravst/real-time-chat/internal/models"
@@ -18,8 +20,26 @@ type contextKey string
 
 const userDataKey contextKey = "userData"
 
-func LiveChat(cfg config.Config, upgrader websocket.Upgrader) http.HandlerFunc {
+// upgrader to upgrade HTTP connection to Websocket
+var (
+	upgrader  = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	rooms     = make(map[string][]*websocket.Conn)
+	roomMutex sync.Mutex
+)
+
+func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userData, ok := r.Context().Value(userDataKey).(models.User)
+		if !ok {
+			http.Error(w, "unauthorized user", http.StatusUnauthorized)
+			return
+		}
+
+		roomName := r.PathValue("roomName")
+		if roomName == "" {
+			http.Error(w, "Missing room Name", http.StatusBadRequest)
+			return
+		}
 
 		// Upgrade HTTP connection to WebSocket
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -29,23 +49,96 @@ func LiveChat(cfg config.Config, upgrader websocket.Upgrader) http.HandlerFunc {
 		}
 		defer conn.Close()
 
+		//check user join or not in room
+		isMember, err := chatService.CheckChatRoomMember(userData.Id, roomName)
+		if err != nil {
+			slog.Error(err.Error())
+			conn.WriteMessage(websocket.TextMessage, []byte("Error: something went worng."))
+			return
+		}
+
+		if !isMember {
+			conn.WriteMessage(websocket.TextMessage, []byte("Error: You are not a member of this group."))
+			return
+		}
+
+		oldMessages, err := chatService.GetOldMessages(roomName, 20)
+		if err != nil {
+			log.Println("Failed to fetch old messages:", err)
+			return
+		}
+
+		// Send old messages to the user
+		for _, msg := range oldMessages {
+			msgJSON, _ := json.Marshal(msg)
+			conn.WriteMessage(websocket.TextMessage, msgJSON)
+		}
+
+		// Add connection to the room
+		roomMutex.Lock()
+		rooms[roomName] = append(rooms[roomName], conn)
+		roomMutex.Unlock()
+
 		slog.Info("WebSocket connection established")
 
 		// Handle WebSocket messages
 		for {
-			messageType, message, err := conn.ReadMessage()
+			// geting message from client
+			_, message, err := conn.ReadMessage()
 			if err != nil {
 				slog.Error("failed to read WebSocket message", slog.String("error", err.Error()))
 				break
 			}
 
-			slog.Info("received WebSocket message", slog.String("message", string(message)))
-
-			// Echo the message back to the client
-			if err := conn.WriteMessage(messageType, message); err != nil {
-				slog.Error("failed to write WebSocket message", slog.String("error", err.Error()))
-				break
+			// decoding message here
+			var msg models.MessageRequest
+			err = json.Unmarshal(message, &msg)
+			if err != nil {
+				slog.Error("failed to parse WebSocket message", slog.String("error", err.Error()))
+				continue
 			}
+
+			// save message in db here
+			newMessageData := &models.MessageRequest{
+				Content: msg.Content,
+				UserId:  userData.Id,
+			}
+			err = chatService.CreateNewMessage(newMessageData, roomName)
+			if err != nil {
+				slog.Error("failed to save message", slog.String("error", err.Error()))
+				continue
+			}
+
+			// send message
+			broadcastMessage(roomName, message)
+		}
+
+		// remove connection
+		removeConnection(roomName, conn)
+	}
+}
+
+func broadcastMessage(roomName string, message []byte) {
+	roomMutex.Lock()
+	defer roomMutex.Unlock()
+
+	clients := rooms[roomName]
+	for _, conn := range clients {
+		if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			log.Println("Failed to send message:", err)
+		}
+	}
+}
+
+func removeConnection(roomName string, conn *websocket.Conn) {
+	roomMutex.Lock()
+	defer roomMutex.Unlock()
+
+	clients := rooms[roomName]
+	for i, c := range clients {
+		if c == conn {
+			rooms[roomName] = append(clients[:i], clients[i+1:]...)
+			break
 		}
 	}
 }
