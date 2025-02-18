@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gauravst/real-time-chat/internal/api/handlers"
+	"github.com/gauravst/real-time-chat/internal/api/middleware"
 	"github.com/gauravst/real-time-chat/internal/config"
 	"github.com/gauravst/real-time-chat/internal/database"
 	"github.com/gauravst/real-time-chat/internal/repositories"
@@ -37,14 +38,77 @@ func main() {
 	router := http.NewServeMux()
 
 	// Initialize repositories and services
-	// userRepo := repositories.NewUserRepository(database.DB)
-	// userService := services.NewUserService(userRepo)
+	userRepo := repositories.NewUserRepository(database.DB)
+	userService := services.NewUserService(userRepo)
 
 	authRepo := repositories.NewAuthRepository(database.DB)
 	authService := services.NewAuthService(authRepo)
 
+	chatRepo := repositories.NewChatRepository(database.DB)
+	chatService := services.NewChatService(chatRepo)
+
 	// REST API routes
-	router.HandleFunc("POST /api/user", handlers.LoginUser(authService, *cfg))
+	router.Handle("GET /api/users",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.GetAllUsers(userService)),
+		),
+	)
+
+	router.Handle("GET /api/user",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.GetUser(userService)),
+		),
+	)
+
+	router.Handle("GET /api/user/{id}",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.GetUserById(userService)),
+		),
+	)
+
+	router.Handle("PUT /api/user/{id}",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.UpdateUser(userService)),
+		),
+	)
+
+	router.Handle("DELETE /api/user/{id}",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.DeleteUser(userService)),
+		),
+	)
+
+	router.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
+
+	router.Handle("GET /api/room",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.GetAllChatRoom(chatService)),
+		),
+	)
+
+	router.Handle("GET /api/room/{name}",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.GetChatRoomByName(chatService)),
+		),
+	)
+
+	router.Handle("POST /api/room",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.CreateNewChatRoom(chatService)),
+		),
+	)
+
+	router.Handle("PUT /api/room/{name}",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.UpdateChatRoom(chatService)),
+		),
+	)
+
+	router.Handle("DELETE /api/room/{name}",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.DeleteChatRoom(chatService)),
+		),
+	)
 
 	// WebSocket route
 	router.HandleFunc("/chat/{id}", handlers.LiveChat(*cfg, upgrader))

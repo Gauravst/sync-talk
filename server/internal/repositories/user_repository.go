@@ -9,8 +9,9 @@ import (
 // UserRepository defines the interface for user-related database operations
 type UserRepository interface {
 	CreateUser(user *models.User) error
+	GetAllUsers() ([]*models.User, error)
 	GetUserByID(id int) (*models.User, error)
-	UpdateUser(user *models.User) error
+	UpdateUser(user *models.UserRequest) error
 	DeleteUser(id int) error
 }
 
@@ -28,34 +29,62 @@ func NewUserRepository(db *sql.DB) UserRepository {
 
 // CreateUser inserts a new user into the database
 func (r *userRepository) CreateUser(user *models.User) error {
-	// query := `INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id`
-	// err := r.db.QueryRow(query, user.Name, user.Email).Scan(&user.ID)
-	// if err != nil {
-	// 	return err
-	// }
+	query := `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id`
+	err := r.db.QueryRow(query, user.Username, user.Password).Scan(&user.Id)
+	if err != nil {
+		return err
+	}
 
 	return nil
+}
+
+// get all user
+func (r *userRepository) GetAllUsers() ([]*models.User, error) {
+	query := `SELECT id, username, role, password FROM users`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var data []*models.User
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(&user.Id, &user.Username, &user.Role, &user.Password)
+		if err != nil {
+			return nil, err
+		}
+
+		data = append(data, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 // GetUserByID retrieves a user by their ID from the database
 func (r *userRepository) GetUserByID(id int) (*models.User, error) {
 	user := &models.User{}
-	// query := `SELECT id, name, email FROM users WHERE id = $1`
-	// err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	query := `SELECT id, username, role, password FROM users WHERE id = $1`
+	err := r.db.QueryRow(query, id).Scan(&user.Id, &user.Username, &user.Role, &user.Password)
+	if err != nil {
+		return nil, err
+	}
 
 	return user, nil
 }
 
 // UpdateUser updates an existing user in the database
-func (r *userRepository) UpdateUser(user *models.User) error {
-	// query := `UPDATE users SET name = $1, email = $2 WHERE id = $3`
-	// _, err := r.db.Exec(query, user.Name, user.Email, user.ID)
-	// if err != nil {
-	// 	return err
-	// }
+func (r *userRepository) UpdateUser(user *models.UserRequest) error {
+	query := `UPDATE users SET username = $1, role = $2, password = $3 WHERE id = $4`
+	_, err := r.db.Exec(query, user.Username, user.Role, user.Password, user.Id)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

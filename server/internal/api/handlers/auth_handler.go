@@ -51,5 +51,6 @@ func LoginUser(authService services.AuthService, cfg config.Config) http.Handler
 
 		// return response
 		response.WriteJson(w, http.StatusCreated, map[string]string{"success": "ok"})
+		return
 	}
 }
