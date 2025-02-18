@@ -14,6 +14,7 @@ type ChatService interface {
 	CheckChatRoomMember(userId int, roomName string) (bool, error)
 	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
 	CreateNewMessage(data *models.MessageRequest, roomName string) error
+	JoinRoom(data *models.JoinRoomRequest) error
 }
 
 type chatService struct {
@@ -90,6 +91,14 @@ func (s *chatService) GetOldMessages(roomName string, limit int) ([]*models.Mess
 
 func (s *chatService) CreateNewMessage(data *models.MessageRequest, roomName string) error {
 	err := s.chatRepo.CreateNewMessage(data, roomName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *chatService) JoinRoom(data *models.JoinRoomRequest) error {
+	err := s.chatRepo.JoinRoom(data)
 	if err != nil {
 		return err
 	}

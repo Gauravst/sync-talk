@@ -301,3 +301,46 @@ func DeleteChatRoom(chatService services.ChatService) http.HandlerFunc {
 		return
 	}
 }
+
+func JoinRoom(chatService services.ChatService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// get user data from auth middleware
+		var userData models.User
+		userData, ok := r.Context().Value(userDataKey).(models.User)
+		if !ok {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			return
+		}
+
+		// get data from parms
+		name := r.PathValue("name")
+		if name == " " {
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("name parms not found")))
+			return
+		}
+
+		member, err := chatService.CheckChatRoomMember(userData.Id, name)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		if member {
+			response.WriteJson(w, http.StatusConflict, response.GeneralError(fmt.Errorf("Already Exists")))
+			return
+		}
+
+		data := &models.JoinRoomRequest{
+			UserId:   userData.Id,
+			RoomName: name,
+		}
+		err = chatService.JoinRoom(data)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, "Chat Room Join")
+		return
+	}
+}

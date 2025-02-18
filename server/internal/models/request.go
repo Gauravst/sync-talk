@@ -30,3 +30,9 @@ type MessageRequest struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+type JoinRoomRequest struct {
+	Id       int    `json:"id"`
+	UserId   int    `json:"userId" validate:"required"`
+	RoomName string `json:"roomName" validate:"required"`
+}

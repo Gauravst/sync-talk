@@ -15,6 +15,7 @@ type ChatRepository interface {
 	CheckChatRoomMember(userId int, roomName string) (bool, error)
 	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
 	CreateNewMessage(data *models.MessageRequest, roomName string) error
+	JoinRoom(data *models.JoinRoomRequest) error
 }
 
 // userRepository implements the AuthRepository interface
@@ -124,6 +125,15 @@ func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.M
 func (r *chatRepository) CreateNewMessage(data *models.MessageRequest, roomName string) error {
 	query := `INSERT INTO messages (userId, roomName, content ) VALUES ($1, $2, $3)`
 	_, err := r.db.Exec(query, data.UserId, roomName, data.Content)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *chatRepository) JoinRoom(data *models.JoinRoomRequest) error {
+	query := `INSERT INTO groupMembers (userId, roomName) VALUES ($1, $2)`
+	_, err := r.db.Exec(query, data.UserId, data.RoomName)
 	if err != nil {
 		return err
 	}
