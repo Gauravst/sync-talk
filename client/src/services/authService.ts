@@ -16,7 +16,7 @@ export const login = async (
     const response = await api.post("/auth/login", { username, password });
 
     // Store token in localStorage
-    localStorage.setItem("token", response.data.token);
+    // localStorage.setItem("token", response.data.token);
     return response.data;
   } catch (error) {
     console.error("Login error:", error);
@@ -35,7 +35,7 @@ export const getUserInfo = async (): Promise<User> => {
   }
 };
 
-export const logout = () => {
-  localStorage.removeItem("token");
-  window.location.href = "/login";
-};
+// export const logout = () => {
+//   localStorage.removeItem("token");
+//   window.location.href = "/login";
+// };
