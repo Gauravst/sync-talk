@@ -344,3 +344,24 @@ func JoinRoom(chatService services.ChatService) http.HandlerFunc {
 		return
 	}
 }
+
+func GetAllJoinRoom(chatService services.ChatService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// get user data from auth middleware
+		var userData models.User
+		userData, ok := r.Context().Value(userDataKey).(models.User)
+		if !ok {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			return
+		}
+
+		data, err := chatService.GetAllJoinRoom(userData.Id)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, data)
+		return
+	}
+}

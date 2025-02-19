@@ -1,20 +1,41 @@
 import { useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL =
-  process.env.REACT_APP_SOCKET_URL || "https://your-api-url.com";
-
-export const useSocket = () => {
-  const [socket, setSocket] = useState<Socket | null>(null);
+export const useSocket = (roomName: string | null) => {
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const SOCKET_URL = roomName ? `ws://localhost:5000/chat/${roomName}` : null;
 
   useEffect(() => {
-    const newSocket = io(SOCKET_URL);
-    setSocket(newSocket);
+    if (!SOCKET_URL) return;
+
+    const ws = new WebSocket(SOCKET_URL);
+    setSocket(ws);
+
+    ws.onopen = () => {
+      console.log(`Connected to room: ${roomName}`);
+    };
+
+    ws.onmessage = (event) => {
+      console.log(`New message: ${event.data}`);
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket Error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket Disconnected");
+    };
 
     return () => {
-      newSocket.disconnect();
+      ws.close();
     };
-  }, []);
+  }, [SOCKET_URL]);
 
-  return socket;
+  const sendMessage = (message: string) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(message);
+    }
+  };
+
+  return { socket, sendMessage };
 };

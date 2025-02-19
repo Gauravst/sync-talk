@@ -11,11 +11,14 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatRoom, getChatRooms, joinChatRoom } from "@/services/chatServices";
-import { group } from "console";
+import { useSocket } from "@/hooks/useSocket"; // Updated WebSocket hook
 
 function RoomListPage() {
   const [chatGroups, setChatGroups] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
+  const [messages, setMessages] = useState<string[]>([]);
+  const { socket, sendMessage } = useSocket(activeRoom);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -24,7 +27,6 @@ function RoomListPage() {
         setChatGroups(rooms);
       } catch (error) {
         console.error("Failed to load chat rooms");
-        console.log(error);
       } finally {
         setLoading(false);
       }
@@ -33,10 +35,23 @@ function RoomListPage() {
     fetchRooms();
   }, []);
 
-  const handleJoinClick = async () => {
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.onmessage = (event) => {
+      setMessages((prev) => [...prev, event.data]);
+    };
+
+    return () => {
+      socket.onmessage = null;
+    };
+  }, [socket]);
+
+  const handleJoinClick = async (roomName: string) => {
     try {
-      await joinChatRoom(group.name);
-      alert(`Successfully joined ${group.name}!`);
+      await joinChatRoom(roomName);
+      setActiveRoom(roomName);
+      alert(`Successfully joined ${roomName}!`);
     } catch {
       alert("Failed to join the room.");
     }
@@ -72,8 +87,7 @@ function RoomListPage() {
                   </CardContent>
                   <CardFooter>
                     <Button
-                      onClick={handleJoinClick}
-                      asChild
+                      onClick={() => handleJoinClick(group.name)}
                       className="w-full"
                     >
                       Join Chat
@@ -86,6 +100,31 @@ function RoomListPage() {
             )}
           </div>
         </ScrollArea>
+      )}
+
+      {/* Chat Window */}
+      {activeRoom && (
+        <div className="mt-6 p-4 border rounded-lg">
+          <h2 className="text-xl font-bold mb-2">Chat in {activeRoom}</h2>
+          <div className="h-40 overflow-y-auto border p-2 bg-gray-100">
+            {messages.map((msg, index) => (
+              <div key={index} className="p-1 bg-white my-1 rounded">
+                {msg}
+              </div>
+            ))}
+          </div>
+          <input
+            type="text"
+            placeholder="Type a message..."
+            className="border p-2 w-full mt-2"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                sendMessage(e.currentTarget.value);
+                e.currentTarget.value = "";
+              }
+            }}
+          />
+        </div>
       )}
     </div>
   );

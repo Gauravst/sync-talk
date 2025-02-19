@@ -109,6 +109,13 @@ func main() {
 		),
 	)
 
+	// get all joined room by user
+	router.Handle("GET /api/join",
+		middleware.Auth(cfg)(
+			http.HandlerFunc(handlers.GetAllJoinRoom(chatService)),
+		),
+	)
+
 	// WebSocket route
 	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg))
 

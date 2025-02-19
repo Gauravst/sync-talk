@@ -49,3 +49,13 @@ export const joinChatRoom = async (roomName: string): Promise<void> => {
     throw error;
   }
 };
+
+export const getJoinedRoom = async (): Promise<ChatRoom[]> => {
+  try {
+    const response = await api.get(`/join`);
+    return response.data;
+  } catch (error) {
+    console.error("Error joining chat room:", error);
+    throw error;
+  }
+};

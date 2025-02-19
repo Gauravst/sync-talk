@@ -15,6 +15,7 @@ type ChatService interface {
 	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
 	CreateNewMessage(data *models.MessageRequest, roomName string) error
 	JoinRoom(data *models.JoinRoomRequest) error
+	GetAllJoinRoom(userId int) ([]*models.ChatRoom, error)
 }
 
 type chatService struct {
@@ -103,4 +104,13 @@ func (s *chatService) JoinRoom(data *models.JoinRoomRequest) error {
 		return err
 	}
 	return nil
+}
+
+func (s *chatService) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) {
+	var data []*models.ChatRoom
+	data, err := s.chatRepo.GetAllJoinRoom(userId)
+	if err != nil {
+		return data, err
+	}
+	return data, nil
 }

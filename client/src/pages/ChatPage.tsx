@@ -1,28 +1,40 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-
-const chatGroups = [
-  { id: 1, name: 'Family', username: '@family', image: '/family-group.jpg' },
-  { id: 2, name: 'Work Team', username: '@workteam', image: '/work-team.jpg' },
-  { id: 3, name: 'Friends', username: '@friends', image: '/friends-group.jpg' },
-  // Add more chat groups as needed
-];
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { ChatRoom, getJoinedRoom } from "@/services/chatServices";
 
 function ChatPage() {
-  const [message, setMessage] = useState('');
-  const { id } = useParams();
+  const [message, setMessage] = useState("");
+  const { name } = useParams();
+  const [chatGroups, setChatGroups] = useState<ChatRoom[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const rooms = await getJoinedRoom();
+        setChatGroups(rooms);
+      } catch (error) {
+        console.error("Failed to load chat rooms");
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRooms();
+  }, []);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
     // Handle sending message logic here
-    console.log('Sending message:', message);
-    setMessage('');
+    console.log("Sending message:", message);
+    setMessage("");
   };
 
   return (
