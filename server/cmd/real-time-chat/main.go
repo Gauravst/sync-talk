@@ -40,89 +40,36 @@ func main() {
 	chatService := services.NewChatService(chatRepo)
 
 	// REST API routes
-	router.Handle("GET /api/users",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.GetAllUsers(userService)),
-		),
-	)
-
-	router.Handle("GET /api/user",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.GetUser(userService)),
-		),
-	)
-
-	router.Handle("GET /api/user/{id}",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.GetUserById(userService)),
-		),
-	)
-
-	router.Handle("PUT /api/user/{id}",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.UpdateUser(userService)),
-		),
-	)
-
-	router.Handle("DELETE /api/user/{id}",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.DeleteUser(userService)),
-		),
-	)
-
+	router.HandleFunc("GET /api/users", handlers.GetAllUsers(userService))
+	router.HandleFunc("GET /api/user", handlers.GetUser(userService))
+	router.HandleFunc("GET /api/user/{id}", handlers.GetUserById(userService))
+	router.HandleFunc("PUT /api/user/{id}", handlers.UpdateUser(userService))
+	router.HandleFunc("DELETE /api/user/{id}", handlers.DeleteUser(userService))
 	router.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
-
-	router.Handle("GET /api/room",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.GetAllChatRoom(chatService)),
-		),
-	)
-
-	router.Handle("GET /api/room/{name}",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.GetChatRoomByName(chatService)),
-		),
-	)
-
-	router.Handle("POST /api/room",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.CreateNewChatRoom(chatService)),
-		),
-	)
-
-	router.Handle("PUT /api/room/{name}",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.UpdateChatRoom(chatService)),
-		),
-	)
-
-	router.Handle("DELETE /api/room/{name}",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.DeleteChatRoom(chatService)),
-		),
-	)
+	router.HandleFunc("GET /api/room", handlers.GetAllChatRoom(chatService))
+	router.HandleFunc("GET /api/room/{name}", handlers.GetChatRoomByName(chatService))
+	router.HandleFunc("POST /api/room", handlers.CreateNewChatRoom(chatService))
+	router.HandleFunc("PUT /api/room/{name}", handlers.UpdateChatRoom(chatService))
+	router.HandleFunc("DELETE /api/room/{name}", handlers.DeleteChatRoom(chatService))
 
 	// join room
-	router.Handle("POST /api/join/{name}",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.JoinRoom(chatService)),
-		),
-	)
+	router.HandleFunc("POST /api/join/{name}", handlers.JoinRoom(chatService))
 
 	// get all joined room by user
-	router.Handle("GET /api/join",
-		middleware.Auth(cfg)(
-			http.HandlerFunc(handlers.GetAllJoinRoom(chatService)),
-		),
-	)
+	router.HandleFunc("GET /api/join", handlers.GetAllJoinRoom(chatService))
 
 	// WebSocket route
+	// working------ > add here auth middleware Ware
 	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg))
+
+	// Wrap the router with CORS middleware
+	authHandler := middleware.Auth(cfg, authService)(router)
+	corsHandler := middleware.CORS(cfg)(authHandler)
 
 	// setup server
 	server := &http.Server{
 		Addr:    cfg.Address,
-		Handler: router,
+		Handler: corsHandler,
 	}
 
 	slog.Info("server started", slog.String("address", cfg.Address))

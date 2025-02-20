@@ -12,6 +12,8 @@ import (
 
 type AuthService interface {
 	LoginUser(data *models.LoginRequest, cfg config.Config) (string, error)
+	// RefreshToken(userId int, token string) error
+	GetRefreshToken(userId int) (string, error)
 }
 
 type authService struct {
@@ -27,32 +29,15 @@ func NewAuthService(authRepo repositories.AuthRepository) AuthService {
 func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (string, error) {
 	// check user exsit
 	userData, err := s.authRepo.CheckUserByUsername(data.Username)
+	var userId int
 
 	// some err so return error
 	if err != nil && err.Error() != "user not found" {
 		return "", err
 	}
 
-	// new accessToken for new user and login user
-	claims := jwt.MapClaims{
-		"username": data.Username,
-		"exp":      time.Now().Add(15 * time.Minute).Unix(),
-	}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	accessTokenString, err := accessToken.SignedString(cfg.JwtPrivateKey)
-	data.AccessToken = accessTokenString
-
-	// RefreshToken
-	claims = jwt.MapClaims{
-		"username": data.Username,
-		"exp":      time.Now().Add(24 * 30 * time.Hour).Unix(),
-	}
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	refreshTokenString, err := refreshToken.SignedString(cfg.JwtPrivateKey)
-
 	// user not found create new user
 	if err != nil {
-
 		hashedPassword, err := hashing.GenerateHashString(data.Password)
 		if err != nil {
 			return "", err
@@ -60,21 +45,42 @@ func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (s
 
 		data.Password = hashedPassword
 		// create new user
-		err = s.authRepo.CreateNewUser(data)
+		createdUserData, err := s.authRepo.CreateNewUser(data)
 		if err != nil {
 			return "", err
 		}
+
+		// seting userid from newUser
+		userId = createdUserData.Id
 	}
 
-	// check user password and data password is same or not
-	err = hashing.CompareHashString(userData.Password, data.Password)
+	// if user exist than
+	if userData.Password != "" {
+		// check user password and data password is same or not
+		err = hashing.CompareHashString(userData.Password, data.Password)
+		if err != nil {
+			return "", err
+		}
+
+		// seting userId here from userData
+		userId = userData.Id
+	}
+
+	// RefreshToken
+	claims2 := jwt.MapClaims{
+		"userId":   userId,
+		"username": data.Username,
+		"exp":      time.Now().Add(24 * 30 * time.Hour).Unix(),
+	}
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims2)
+	refreshTokenString, err := refreshToken.SignedString([]byte(cfg.JwtPrivateKey))
 	if err != nil {
 		return "", err
 	}
 
 	var loginData models.LoginSession
 	loginData.Token = refreshTokenString
-	loginData.UserId = userData.Id
+	loginData.UserId = userId
 
 	// user exist create login
 	err = s.authRepo.LoginUser(&loginData)
@@ -82,5 +88,29 @@ func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (s
 		return "", err
 	}
 
-	return data.AccessToken, nil
+	// new accessToken for new user and login user
+	claims1 := jwt.MapClaims{
+		"userId":   userId,
+		"username": data.Username,
+		"exp":      time.Now().Add(15 * time.Minute).Unix(),
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims1)
+	accessTokenString, err := accessToken.SignedString([]byte(cfg.JwtPrivateKey))
+	if err != nil {
+		return "", err
+	}
+
+	return accessTokenString, nil
+}
+
+// func (s *authService) RefreshToken(userId int, token string) error {
+// }
+
+func (s *authService) GetRefreshToken(userId int) (string, error) {
+	token, err := s.authRepo.GetRefreshToken(userId)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }

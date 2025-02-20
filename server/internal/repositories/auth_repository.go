@@ -10,8 +10,10 @@ import (
 // AuthRepository defines the interface for user-related database operations
 type AuthRepository interface {
 	LoginUser(data *models.LoginSession) error
-	CreateNewUser(data *models.LoginRequest) error
+	CreateNewUser(data *models.LoginRequest) (*models.User, error)
 	CheckUserByUsername(username string) (models.User, error)
+	// RefreshToken(userId int, token string) error
+	GetRefreshToken(userId int) (string, error)
 }
 
 // userRepository implements the AuthRepository interface
@@ -27,7 +29,7 @@ func NewAuthRepository(db *sql.DB) AuthRepository {
 }
 
 func (r *authRepository) LoginUser(data *models.LoginSession) error {
-	query := `INSERT INTO login_session (userId, token) VALUES ($1, $2)`
+	query := `INSERT INTO loginSession (userId, token) VALUES ($1, $2)`
 	_, err := r.db.Exec(query, data.UserId, data.Token)
 	if err != nil {
 		return err
@@ -35,13 +37,15 @@ func (r *authRepository) LoginUser(data *models.LoginSession) error {
 	return nil
 }
 
-func (r *authRepository) CreateNewUser(data *models.LoginRequest) error {
-	query := `INSERT INTO users (username, password) VALUES ($1, $2)`
-	_, err := r.db.Exec(query, data.Username, data.Password)
+func (r *authRepository) CreateNewUser(data *models.LoginRequest) (*models.User, error) {
+	user := &models.User{}
+	query := `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, createdAt`
+	err := r.db.QueryRow(query, data.Username, data.Password).Scan(&user.Id, &user.Username, &user.Role, &user.CreatedAt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return err
+
+	return user, nil
 }
 
 func (r *authRepository) CheckUserByUsername(username string) (models.User, error) {
@@ -55,4 +59,23 @@ func (r *authRepository) CheckUserByUsername(username string) (models.User, erro
 		return user, err
 	}
 	return user, nil
+}
+
+// func (r *authRepository) RefreshToken(userId int, token string) error {
+// 	query := `UPDATE`
+// 	_, err := r.db.Exec(query, token, userId)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
+
+func (r *authRepository) GetRefreshToken(userId int) (string, error) {
+	var token string
+	query := `SELECT token FROM loginSession WHERE userId = $1`
+	err := r.db.QueryRow(query, userId).Scan(&token)
+	if err != nil {
+		return token, err
+	}
+	return token, nil
 }

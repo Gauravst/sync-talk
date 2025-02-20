@@ -1,7 +1,6 @@
 --- 001_initial_schema.up.sql
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
   username TEXT NOT NULL,
   password TEXT NOT NULL,
   role TEXT DEFAULT 'USER',
@@ -24,15 +23,14 @@ CREATE TABLE loginSession (
   token TEXT NOT NULL,
   userId INTEGER NOT NULL,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_user FOREIGN KEY (userId) REFERENCES users (id)
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE groupMembers (
   id SERIAL PRIMARY KEY,
   userId INT NOT NULL,
   roomName TEXT NOT NULL,
-  UNIQUE (userId, roomId)
+  UNIQUE (userId, roomName)
 );
 
 CREATE TABLE messages (
@@ -41,5 +39,5 @@ CREATE TABLE messages (
   userId INT NOT NULL,
   content TEXT NOT NULL,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
