@@ -40,13 +40,15 @@ export const getChatRooms = async (): Promise<ChatRoom[]> => {
   }
 };
 
-export const joinChatRoom = async (roomName: string): Promise<void> => {
+export const joinChatRoom = async (roomName: string): Promise<boolean> => {
   try {
     const response = await api.post(`/join/${roomName}`);
-    console.log("Joined room successfully:", response.data);
+
+    // Return true if request is successful (status 200)
+    return response.status === 200;
   } catch (error) {
     console.error("Error joining chat room:", error);
-    throw error;
+    return false; // Return false in case of failure
   }
 };
 

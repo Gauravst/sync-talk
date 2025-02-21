@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,11 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   const handleLogin = async () => {
     try {
@@ -28,11 +30,20 @@ function LoginPage() {
     }
   };
 
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      navigate("/chat");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) return <div>Loading...</div>;
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-500">
       <Card className="w-[350px]">
         <CardHeader>
-          <CardTitle>Welcome back</CardTitle>
+          <CardTitle>Welcome To Sync Talk</CardTitle>
           <CardDescription>Create or Login Your account</CardDescription>
         </CardHeader>
         <CardContent>

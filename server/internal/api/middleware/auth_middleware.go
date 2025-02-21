@@ -15,7 +15,7 @@ import (
 
 type contextKey string
 
-const userDataKey contextKey = "userData"
+const UserDataKey contextKey = "userData"
 
 func Auth(cfg *config.Config, authService services.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -33,6 +33,7 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 			userData, err := jwtToken.VerifyJwtAndGetData[models.AccessToken](token, cfg.JwtPrivateKey)
 			if err != nil {
 				if err.Error() == "token has expired" {
+					// log.Print("Token has expired. Please reauthenticate.")
 					// accessToken expired, give client next token here
 					refreshToken, err := authService.GetRefreshToken(userData.UserId)
 					if err != nil {
@@ -55,7 +56,8 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 					claims := jwt.MapClaims{
 						"userId":   userData.UserId,
 						"username": userData.Username,
-						"exp":      time.Now().Add(24 * 30 * time.Hour).Unix(),
+						"role":     userData.Role,
+						"exp":      time.Now().Add(2 * time.Minute).Unix(),
 					}
 					newAccessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 					newAccessTokenString, err := newAccessToken.SignedString([]byte(cfg.JwtPrivateKey))
@@ -66,16 +68,17 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 					}
 
 					jwtToken.SetAccessToken(w, newAccessTokenString, false)
+				} else {
+					//remove accessToken here
+					jwtToken.RemoveAccessToken(w, false)
+					response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(err))
+					return
 				}
-				//remove accessToken here
-				jwtToken.RemoveAccessToken(w, false)
-				response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(err))
-				return
 			}
 
-			ctx := context.WithValue(r.Context(), userDataKey, userData)
-			r.WithContext(ctx)
-			next.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), UserDataKey, userData)
+			// sending context data with request
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

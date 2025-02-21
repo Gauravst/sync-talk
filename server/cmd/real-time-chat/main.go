@@ -26,9 +26,6 @@ func main() {
 	database.InitDB(cfg.DatabaseUri)
 	defer database.CloseDB()
 
-	// setup router
-	router := http.NewServeMux()
-
 	// Initialize repositories and services
 	userRepo := repositories.NewUserRepository(database.DB)
 	userService := services.NewUserService(userRepo)
@@ -39,39 +36,45 @@ func main() {
 	chatRepo := repositories.NewChatRepository(database.DB)
 	chatService := services.NewChatService(chatRepo)
 
-	// REST API routes
+	// Setup routers
+	router := http.NewServeMux()
+	publicRouter := http.NewServeMux()
+
+	// Public routes (No Auth)
+	publicRouter.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
+
+	// Protected routes (Require Auth)
 	router.HandleFunc("GET /api/users", handlers.GetAllUsers(userService))
 	router.HandleFunc("GET /api/user", handlers.GetUser(userService))
 	router.HandleFunc("GET /api/user/{id}", handlers.GetUserById(userService))
 	router.HandleFunc("PUT /api/user/{id}", handlers.UpdateUser(userService))
 	router.HandleFunc("DELETE /api/user/{id}", handlers.DeleteUser(userService))
-	router.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
 	router.HandleFunc("GET /api/room", handlers.GetAllChatRoom(chatService))
 	router.HandleFunc("GET /api/room/{name}", handlers.GetChatRoomByName(chatService))
 	router.HandleFunc("POST /api/room", handlers.CreateNewChatRoom(chatService))
 	router.HandleFunc("PUT /api/room/{name}", handlers.UpdateChatRoom(chatService))
 	router.HandleFunc("DELETE /api/room/{name}", handlers.DeleteChatRoom(chatService))
 
-	// join room
+	// Join room
 	router.HandleFunc("POST /api/join/{name}", handlers.JoinRoom(chatService))
-
-	// get all joined room by user
 	router.HandleFunc("GET /api/join", handlers.GetAllJoinRoom(chatService))
 
 	// WebSocket route
-	// working------ > add here auth middleware Ware
 	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg))
 
-	// Wrap the router with CORS middleware
-	authHandler := middleware.Auth(cfg, authService)(router)
-	corsHandler := middleware.CORS(cfg)(authHandler)
+	// Merge both routers
+	mainRouter := http.NewServeMux()
+	mainRouter.Handle("/api/auth/", publicRouter)                         // Public routes (No Auth)
+	mainRouter.Handle("/api/", middleware.Auth(cfg, authService)(router)) // Protected routes
 
-	// setup server
+	// Wrap everything with CORS middleware
+	finalHandler := middleware.CORS(cfg)(mainRouter)
+
+	// Setup server
 	server := &http.Server{
 		Addr:    cfg.Address,
-		Handler: corsHandler,
+		Handler: finalHandler,
 	}
-
 	slog.Info("server started", slog.String("address", cfg.Address))
 
 	done := make(chan os.Signal, 1)

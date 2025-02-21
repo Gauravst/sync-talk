@@ -6,22 +6,25 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gauravst/real-time-chat/internal/api/middleware"
 	"github.com/gauravst/real-time-chat/internal/models"
 	"github.com/gauravst/real-time-chat/internal/services"
 	"github.com/gauravst/real-time-chat/internal/utils/response"
 	"github.com/go-playground/validator/v10"
 )
 
-// type contextKey string
-//
-// const userDataKey contextKey = "userData"
-
 func GetAllUsers(userService services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
 		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
@@ -43,16 +46,21 @@ func GetAllUsers(userService services.UserService) http.HandlerFunc {
 
 func GetUser(userService services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
 
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
 		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
 		response.WriteJson(w, http.StatusOK, userData)
-		return
 	}
 }
 
@@ -70,14 +78,21 @@ func GetUserById(userService services.UserService) http.HandlerFunc {
 			return
 		}
 
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
-		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+		// geting middleware data
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
-		if userData.Role != "ADMIN" && userData.Id != idInt {
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		if userData.Role != "ADMIN" && userData.UserId != idInt {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}
@@ -114,14 +129,21 @@ func UpdateUser(userService services.UserService) http.HandlerFunc {
 			return
 		}
 
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
-		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+		// geting middleware data
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
-		if userData.Role != "ADMIN" && userData.Id != idInt {
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		if userData.Role != "ADMIN" && userData.UserId != idInt {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}
@@ -158,14 +180,21 @@ func DeleteUser(userService services.UserService) http.HandlerFunc {
 			return
 		}
 
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
-		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+		// geting middleware data
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
-		if userData.Role != "ADMIN" && userData.Id != idInt {
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		if userData.Role != "ADMIN" && userData.UserId != idInt {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}

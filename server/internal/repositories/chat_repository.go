@@ -142,7 +142,7 @@ func (r *chatRepository) JoinRoom(data *models.JoinRoomRequest) error {
 }
 
 func (r *chatRepository) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) {
-	query := `SELECT groupMembers.id, groupMembers.name FROM groupMembers JOIN chatRoom ON groupMembers.name = chatRoom.name WHERE groupMembers.userId = $1;
+	query := `SELECT groupMembers.id, groupMembers.roomName FROM groupMembers JOIN chatRoom ON groupMembers.roomName = chatRoom.name WHERE groupMembers.userId = $1;
 `
 
 	rows, err := r.db.Query(query, userId)

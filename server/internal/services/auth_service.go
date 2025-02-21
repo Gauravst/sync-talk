@@ -66,10 +66,16 @@ func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (s
 		userId = userData.Id
 	}
 
+	role := userData.Role
+	if role == "" {
+		role = "USER"
+	}
+
 	// RefreshToken
 	claims2 := jwt.MapClaims{
 		"userId":   userId,
 		"username": data.Username,
+		"role":     role,
 		"exp":      time.Now().Add(24 * 30 * time.Hour).Unix(),
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims2)
@@ -92,7 +98,8 @@ func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (s
 	claims1 := jwt.MapClaims{
 		"userId":   userId,
 		"username": data.Username,
-		"exp":      time.Now().Add(15 * time.Minute).Unix(),
+		"role":     role,
+		"exp":      time.Now().Add(2 * time.Minute).Unix(),
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims1)
 	accessTokenString, err := accessToken.SignedString([]byte(cfg.JwtPrivateKey))

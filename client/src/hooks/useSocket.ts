@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 export const useSocket = (roomName: string | null) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const SOCKET_URL = roomName ? `ws://localhost:5000/chat/${roomName}` : null;
+  const SOCKET_URL = roomName ? `ws://localhost:8080/chat/${roomName}` : null;
 
   useEffect(() => {
     if (!SOCKET_URL) return;

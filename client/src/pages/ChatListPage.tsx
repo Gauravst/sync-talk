@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatRoom, getChatRooms, joinChatRoom } from "../services/chatServices";
+import { useNavigate } from "react-router-dom";
 
 function RoomListPage() {
   const [chatGroups, setChatGroups] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -32,17 +34,19 @@ function RoomListPage() {
   }, []);
 
   const handleJoinClick = async (roomName: string) => {
-    try {
-      await joinChatRoom(roomName);
-      alert(`Successfully joined ${roomName}!`);
-    } catch {
-      alert("Failed to join the room.");
+    const isJoined = await joinChatRoom(roomName);
+
+    if (isJoined) {
+      console.log("Navigating to chat room...");
+      navigate(`/chat/${roomName}`);
+    } else {
+      console.log("Failed to join the room.");
     }
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Your Chat Groups</h1>
+      <h1 className="text-2xl font-bold mb-4">List of Chat Rooms</h1>
       {loading ? (
         <p>Loading chat rooms...</p>
       ) : (

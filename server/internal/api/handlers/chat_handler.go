@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/gauravst/real-time-chat/internal/api/middleware"
 	"github.com/gauravst/real-time-chat/internal/config"
 	"github.com/gauravst/real-time-chat/internal/models"
 	"github.com/gauravst/real-time-chat/internal/services"
@@ -29,7 +30,15 @@ var (
 
 func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userData, ok := r.Context().Value(userDataKey).(models.User)
+		// geting middleware data
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			http.Error(w, "unauthorized user", http.StatusUnauthorized)
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
 		if !ok {
 			http.Error(w, "unauthorized user", http.StatusUnauthorized)
 			return
@@ -50,7 +59,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 		defer conn.Close()
 
 		//check user join or not in room
-		isMember, err := chatService.CheckChatRoomMember(userData.Id, roomName)
+		isMember, err := chatService.CheckChatRoomMember(userData.UserId, roomName)
 		if err != nil {
 			slog.Error(err.Error())
 			conn.WriteMessage(websocket.TextMessage, []byte("Error: something went worng."))
@@ -101,7 +110,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 			// save message in db here
 			newMessageData := &models.MessageRequest{
 				Content: msg.Content,
-				UserId:  userData.Id,
+				UserId:  userData.UserId,
 			}
 			err = chatService.CreateNewMessage(newMessageData, roomName)
 			if err != nil {
@@ -177,11 +186,17 @@ func GetChatRoomByName(chatService services.ChatService) http.HandlerFunc {
 
 func CreateNewChatRoom(chatService services.ChatService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get user data from auth middleware
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
 		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
@@ -194,7 +209,7 @@ func CreateNewChatRoom(chatService services.ChatService) http.HandlerFunc {
 		}
 
 		// update data
-		data.UserId = userData.Id
+		data.UserId = userData.UserId
 
 		// vaildate data here
 		err = validator.New().Struct(data)
@@ -218,11 +233,17 @@ func CreateNewChatRoom(chatService services.ChatService) http.HandlerFunc {
 
 func UpdateChatRoom(chatService services.ChatService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get user data from auth middleware
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
 		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
@@ -247,7 +268,7 @@ func UpdateChatRoom(chatService services.ChatService) http.HandlerFunc {
 			return
 		}
 
-		if userData.Role != "ADMIN" && roomData.UserId != userData.Id {
+		if userData.Role != "ADMIN" && roomData.UserId != userData.UserId {
 			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("unauthorized user")))
 			return
 		}
@@ -265,11 +286,17 @@ func UpdateChatRoom(chatService services.ChatService) http.HandlerFunc {
 
 func DeleteChatRoom(chatService services.ChatService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get user data from auth middleware
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
 		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
@@ -286,7 +313,7 @@ func DeleteChatRoom(chatService services.ChatService) http.HandlerFunc {
 			return
 		}
 
-		if userData.Role != "ADMIN" && roomData.UserId != userData.Id {
+		if userData.Role != "ADMIN" && roomData.UserId != userData.UserId {
 			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("unauthorized user")))
 			return
 		}
@@ -304,11 +331,17 @@ func DeleteChatRoom(chatService services.ChatService) http.HandlerFunc {
 
 func JoinRoom(chatService services.ChatService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get user data from auth middleware
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
 		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
@@ -319,7 +352,7 @@ func JoinRoom(chatService services.ChatService) http.HandlerFunc {
 			return
 		}
 
-		member, err := chatService.CheckChatRoomMember(userData.Id, name)
+		member, err := chatService.CheckChatRoomMember(userData.UserId, name)
 		if err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
@@ -331,7 +364,7 @@ func JoinRoom(chatService services.ChatService) http.HandlerFunc {
 		}
 
 		data := &models.JoinRoomRequest{
-			UserId:   userData.Id,
+			UserId:   userData.UserId,
 			RoomName: name,
 		}
 		err = chatService.JoinRoom(data)
@@ -347,15 +380,21 @@ func JoinRoom(chatService services.ChatService) http.HandlerFunc {
 
 func GetAllJoinRoom(chatService services.ChatService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get user data from auth middleware
-		var userData models.User
-		userData, ok := r.Context().Value(userDataKey).(models.User)
-		if !ok {
-			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(fmt.Errorf("user data not found")))
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
 			return
 		}
 
-		data, err := chatService.GetAllJoinRoom(userData.Id)
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		data, err := chatService.GetAllJoinRoom(userData.UserId)
 		if err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
