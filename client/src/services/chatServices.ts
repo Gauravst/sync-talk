@@ -61,3 +61,13 @@ export const getJoinedRoom = async (): Promise<ChatRoom[]> => {
     throw error;
   }
 };
+
+export const leaveRoom = async (roomName: string): Promise<boolean> => {
+  try {
+    const response = await api.delete(`/join/${roomName}`);
+    return response.status === 200;
+  } catch (error) {
+    console.error("Error joining chat room:", error);
+    throw error;
+  }
+};

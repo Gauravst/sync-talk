@@ -17,10 +17,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type contextKey string
-
-const userDataKey contextKey = "userData"
-
 // upgrader to upgrade HTTP connection to Websocket
 var (
 	upgrader  = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
@@ -44,6 +40,9 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 			return
 		}
 
+		// Store user data in a local variable
+		currentUser := *userData
+
 		roomName := r.PathValue("roomName")
 		if roomName == "" {
 			http.Error(w, "Missing room Name", http.StatusBadRequest)
@@ -59,7 +58,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 		defer conn.Close()
 
 		//check user join or not in room
-		isMember, err := chatService.CheckChatRoomMember(userData.UserId, roomName)
+		isMember, err := chatService.CheckChatRoomMember(currentUser.UserId, roomName)
 		if err != nil {
 			slog.Error(err.Error())
 			conn.WriteMessage(websocket.TextMessage, []byte("Error: something went worng."))
@@ -110,16 +109,16 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 			// save message in db here
 			newMessageData := &models.MessageRequest{
 				Content: msg.Content,
-				UserId:  userData.UserId,
+				UserId:  currentUser.UserId,
 			}
-			err = chatService.CreateNewMessage(newMessageData, roomName)
+			createdMessage, err := chatService.CreateNewMessage(newMessageData, roomName)
 			if err != nil {
 				slog.Error("failed to save message", slog.String("error", err.Error()))
 				continue
 			}
 
 			// send message
-			broadcastMessage(roomName, message)
+			broadcastMessage(roomName, conn, createdMessage)
 		}
 
 		// remove connection
@@ -127,13 +126,26 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 	}
 }
 
-func broadcastMessage(roomName string, message []byte) {
+func broadcastMessage(roomName string, sender *websocket.Conn, message *models.MessageRequest) {
 	roomMutex.Lock()
 	defer roomMutex.Unlock()
 
 	clients := rooms[roomName]
+
+	// Convert the message struct to JSON
+	jsonMessage, err := json.Marshal(message)
+	if err != nil {
+		log.Println("Failed to marshal message:", err)
+		return
+	}
+
+	// Send the JSON message to all clients **except the sender**
 	for _, conn := range clients {
-		if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+		if conn == sender {
+			continue // Don't send the message back to the sender
+		}
+
+		if err := conn.WriteMessage(websocket.TextMessage, jsonMessage); err != nil {
 			log.Println("Failed to send message:", err)
 		}
 	}
@@ -401,6 +413,40 @@ func GetAllJoinRoom(chatService services.ChatService) http.HandlerFunc {
 		}
 
 		response.WriteJson(w, http.StatusOK, data)
+		return
+	}
+}
+
+func LeaveRoom(chatService services.ChatService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// get data from parms
+		name := r.PathValue("name")
+		if name == " " {
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("name parms not found")))
+			return
+		}
+
+		err := chatService.LeaveRoom(userData.UserId, name)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, "User Leaved Room")
 		return
 	}
 }

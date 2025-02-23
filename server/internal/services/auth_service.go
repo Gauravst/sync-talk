@@ -84,6 +84,12 @@ func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (s
 		return "", err
 	}
 
+	// remove all login here first
+	err = s.authRepo.RemoveOtherLogin(userId)
+	if err != nil {
+		return "", err
+	}
+
 	var loginData models.LoginSession
 	loginData.Token = refreshTokenString
 	loginData.UserId = userId

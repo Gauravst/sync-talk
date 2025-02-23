@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,15 +20,31 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [login2Loading, setLogin2Loading] = useState(false);
 
   const handleLogin = async () => {
+    setLoginLoading(true);
     try {
-      await login(username, password);
-      navigate("/rooms");
+      const isLogin = await login(username, password);
+      if (isLogin) {
+        navigate(`/chat`);
+      } else {
+        console.log("Failed to join the room.");
+      }
+
+      setLoginLoading(false);
     } catch (error) {
       alert("Invalid login credentials");
       console.log(error);
+      setLoginLoading(false);
     }
+  };
+
+  const handleLogin2 = async () => {
+    setLogin2Loading(true);
+    alert("comming soon");
+    setLogin2Loading(false);
   };
 
   useEffect(() => {
@@ -73,9 +90,24 @@ function LoginPage() {
             </div>
           </form>
         </CardContent>
-        <CardFooter>
-          <Button onClick={handleLogin} className="w-full">
-            Continue
+        <CardFooter className="flex flex-col gap-2">
+          <Button
+            disabled={loginLoading}
+            onClick={handleLogin}
+            className="w-full"
+          >
+            {loginLoading && <Loader2 className="animate-spin mr-2" />}
+            {loginLoading ? "Please wait" : "Continue"}
+          </Button>
+
+          <Button
+            disabled={login2Loading}
+            onClick={handleLogin2}
+            variant="outline"
+            className="w-full"
+          >
+            {login2Loading && <Loader2 className="animate-spin mr-2" />}
+            {login2Loading ? "Please wait" : "Continue Without Auth"}
           </Button>
         </CardFooter>
       </Card>

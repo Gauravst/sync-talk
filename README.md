@@ -1,4 +1,4 @@
-# Real-Time Chat App
+# Sync Talk - Real-Time Chat App
 
 This is a real-time chat application built with the following technologies:
 

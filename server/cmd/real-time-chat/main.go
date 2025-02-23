@@ -39,6 +39,7 @@ func main() {
 	// Setup routers
 	router := http.NewServeMux()
 	publicRouter := http.NewServeMux()
+	// publicRouter2 := http.NewServeMux()
 
 	// Public routes (No Auth)
 	publicRouter.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
@@ -56,16 +57,18 @@ func main() {
 	router.HandleFunc("DELETE /api/room/{name}", handlers.DeleteChatRoom(chatService))
 
 	// Join room
-	router.HandleFunc("POST /api/join/{name}", handlers.JoinRoom(chatService))
 	router.HandleFunc("GET /api/join", handlers.GetAllJoinRoom(chatService))
+	router.HandleFunc("POST /api/join/{name}", handlers.JoinRoom(chatService))
+	router.HandleFunc("DELETE /api/join/{name}", handlers.LeaveRoom(chatService))
 
 	// WebSocket route
 	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg))
 
 	// Merge both routers
 	mainRouter := http.NewServeMux()
-	mainRouter.Handle("/api/auth/", publicRouter)                         // Public routes (No Auth)
-	mainRouter.Handle("/api/", middleware.Auth(cfg, authService)(router)) // Protected routes
+	mainRouter.Handle("/api/auth/", publicRouter)                     // Public routes (No Auth)
+	mainRouter.Handle("/", middleware.Auth(cfg, authService)(router)) // Protected routes
+	// mainRouter.Handle("/chat/", publicRouter2)
 
 	// Wrap everything with CORS middleware
 	finalHandler := middleware.CORS(cfg)(mainRouter)

@@ -11,13 +11,10 @@ export interface User {
 export const login = async (
   username: string,
   password: string,
-): Promise<{ token: string }> => {
+): Promise<boolean> => {
   try {
     const response = await api.post("/auth/login", { username, password });
-
-    // Store token in localStorage
-    // localStorage.setItem("token", response.data.token);
-    return response.data;
+    return response.status === 200 || response.status === 201;
   } catch (error) {
     console.error("Login error:", error);
     throw error;

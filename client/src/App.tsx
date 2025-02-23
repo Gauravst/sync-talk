@@ -17,6 +17,7 @@ const App = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/rooms" element={<RoomListPage />} />
             <Route path="/chat/:name" element={<ChatPage />} />
+            <Route path="/chat" element={<ChatPage />} />
           </Route>
         </Routes>
       </Router>

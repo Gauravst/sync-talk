@@ -9,6 +9,7 @@ import (
 
 // AuthRepository defines the interface for user-related database operations
 type AuthRepository interface {
+	RemoveOtherLogin(userId int) error
 	LoginUser(data *models.LoginSession) error
 	CreateNewUser(data *models.LoginRequest) (*models.User, error)
 	CheckUserByUsername(username string) (models.User, error)
@@ -28,6 +29,16 @@ func NewAuthRepository(db *sql.DB) AuthRepository {
 	}
 }
 
+func (r *authRepository) RemoveOtherLogin(userId int) error {
+	query := `DELETE FROM loginSession WHERE userId = $1`
+	_, err := r.db.Exec(query, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *authRepository) LoginUser(data *models.LoginSession) error {
 	query := `INSERT INTO loginSession (userId, token) VALUES ($1, $2)`
 	_, err := r.db.Exec(query, data.UserId, data.Token)
@@ -39,7 +50,7 @@ func (r *authRepository) LoginUser(data *models.LoginSession) error {
 
 func (r *authRepository) CreateNewUser(data *models.LoginRequest) (*models.User, error) {
 	user := &models.User{}
-	query := `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, createdAt`
+	query := `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, role, createdAt`
 	err := r.db.QueryRow(query, data.Username, data.Password).Scan(&user.Id, &user.Username, &user.Role, &user.CreatedAt)
 	if err != nil {
 		return nil, err

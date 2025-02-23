@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"database/sql"
+	"errors"
+	"log"
 
 	"github.com/gauravst/real-time-chat/internal/models"
 )
@@ -14,9 +16,10 @@ type ChatRepository interface {
 	CreateNewChatRoom(data *models.ChatRoomRequest) error
 	CheckChatRoomMember(userId int, roomName string) (bool, error)
 	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
-	CreateNewMessage(data *models.MessageRequest, roomName string) error
+	CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageRequest, error)
 	JoinRoom(data *models.JoinRoomRequest) error
 	GetAllJoinRoom(userId int) ([]*models.ChatRoom, error)
+	LeaveRoom(userId int, roomName string) error
 }
 
 // userRepository implements the AuthRepository interface
@@ -96,15 +99,23 @@ func (r *chatRepository) CreateNewChatRoom(data *models.ChatRoomRequest) error {
 }
 
 func (r *chatRepository) CheckChatRoomMember(userId int, roomName string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM groupMembers WHERE userId = $1 AND roomname = $2)`
 	var exists bool
-	query := `SELECT EXISTS(SELECT 1 FROM groupMembers WHERE userId = $1 AND roomName = $2)`
 	err := r.db.QueryRow(query, userId, roomName).Scan(&exists)
-	return exists, err
+	if err != nil {
+		log.Printf("Error checking chat room member: %v", err)
+		return false, err
+	}
+	return exists, nil
 }
 
 func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error) {
+	if roomName == "" || limit <= 0 {
+		return nil, errors.New("invalid room name or limit")
+	}
+
 	var messages []*models.MessageRequest
-	query := `SELECT userId, content, createdAt FROM messages WHERE roomName = $1 ORDER BY createdAt DESC LIMIT $2`
+	query := `SELECT id, userId, content, roomName, createdAt, updatedAt FROM messages WHERE roomName = $1 ORDER BY createdAt DESC LIMIT $2`
 
 	rows, err := r.db.Query(query, roomName, limit)
 	if err != nil {
@@ -113,23 +124,35 @@ func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.M
 	defer rows.Close()
 
 	for rows.Next() {
-		var msg *models.MessageRequest
-		err := rows.Scan(&msg.UserId, &msg.Content, &msg.CreatedAt)
+		msg := &models.MessageRequest{}
+		err := rows.Scan(&msg.Id, &msg.UserId, &msg.Content, &msg.RoomName, &msg.CreatedAt, &msg.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
 		messages = append(messages, msg)
 	}
+
+	if len(messages) == 0 {
+		return nil, errors.New("no messages found")
+	}
+
 	return messages, nil
 }
 
-func (r *chatRepository) CreateNewMessage(data *models.MessageRequest, roomName string) error {
-	query := `INSERT INTO messages (userId, roomName, content ) VALUES ($1, $2, $3)`
-	_, err := r.db.Exec(query, data.UserId, roomName, data.Content)
+func (r *chatRepository) CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageRequest, error) {
+	var message models.MessageRequest
+
+	query := `INSERT INTO messages (userId, roomName, content) 
+  VALUES ($1, $2, $3) RETURNING id, userId, roomName, content, createdAt, updatedAt`
+	err := r.db.QueryRow(query, data.UserId, roomName, data.Content).Scan(
+		&message.Id, &message.UserId, &message.RoomName, &message.Content, &message.CreatedAt, &message.UpdatedAt,
+	)
+
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	return &message, nil
 }
 
 func (r *chatRepository) JoinRoom(data *models.JoinRoomRequest) error {
@@ -142,8 +165,18 @@ func (r *chatRepository) JoinRoom(data *models.JoinRoomRequest) error {
 }
 
 func (r *chatRepository) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) {
-	query := `SELECT groupMembers.id, groupMembers.roomName FROM groupMembers JOIN chatRoom ON groupMembers.roomName = chatRoom.name WHERE groupMembers.userId = $1;
-`
+	query := `
+		SELECT 
+			chatRoom.id, chatRoom.name, chatRoom.userId, chatRoom.profilePic
+		FROM 
+			groupMembers 
+		JOIN 
+			chatRoom 
+		ON 
+			groupMembers.roomName = chatRoom.name 
+		WHERE 
+			groupMembers.userId = $1;
+	`
 
 	rows, err := r.db.Query(query, userId)
 	if err != nil {
@@ -167,4 +200,14 @@ func (r *chatRepository) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) 
 	}
 
 	return data, nil
+}
+
+func (r *chatRepository) LeaveRoom(userId int, roomName string) error {
+	query := `DELETE FROM groupMembers WHERE userId = $1 AND roomName = $2`
+	_, err := r.db.Exec(query, userId, roomName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
