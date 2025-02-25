@@ -45,16 +45,17 @@ function LoginPage() {
     setLogin2Loading(true);
     try {
       const isLogin = await loginWithoutAuth();
+      console.log("Login status:", isLogin); // Debugging log
+
       if (isLogin) {
+        console.log("Login successful, navigating to /rooms...");
         navigate(`/rooms`);
       } else {
         console.log("Failed to join the room.");
       }
-
-      setLogin2Loading(false);
     } catch (error) {
-      console.log("Invalid login credentials");
-      console.log(error);
+      console.error("Invalid login credentials", error);
+    } finally {
       setLogin2Loading(false);
     }
   };

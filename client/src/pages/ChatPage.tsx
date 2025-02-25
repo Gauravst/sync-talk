@@ -31,6 +31,9 @@ function ChatPage() {
   const currentUserId = 1; // Change this when integrating authentication
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // temp code
+  console.log(loading);
+
   const { sendMessage } = useSocket(name!, (newMessageOrHistory) => {
     if (!initialized && Array.isArray(newMessageOrHistory)) {
       // 🔹 First WebSocket history load → reverse it to correct order (oldest first)
@@ -119,7 +122,7 @@ function ChatPage() {
       ) : (
         <div className="flex-1 flex flex-col bg-white">
           <Card className="flex-1">
-            <CardHeader>
+            <CardHeader className="bg-black">
               <CardTitle>{name}</CardTitle>
             </CardHeader>
             <CardContent>
