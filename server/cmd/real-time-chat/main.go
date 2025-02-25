@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -75,8 +76,15 @@ func main() {
 	finalHandler := middleware.CORS(cfg)(mainRouter)
 
 	// Setup server
+	port := cfg.EnvPort
+	addr := cfg.Address
+
+	if port != 0 {
+		addr = "0.0.0.0:" + strconv.Itoa(port) // Convert int to string
+	}
+
 	server := &http.Server{
-		Addr:    cfg.Address,
+		Addr:    addr,
 		Handler: finalHandler,
 	}
 	slog.Info("server started", slog.String("address", cfg.Address))

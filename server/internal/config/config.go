@@ -19,6 +19,7 @@ type Config struct {
 	DatabaseUri   string `env:"DATABASE_URI" env-required:"true"`
 	JwtPrivateKey string `env:"JWT_PRIVATE_KEY" env-required:"true"`
 	ClientUrl     string `env:"CLIENT_URL" env-required:"true"`
+	EnvPort       int    `env:"PORT"`
 	HTTPServer    `yaml:"http_server"`
 }
 
