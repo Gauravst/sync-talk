@@ -6,7 +6,7 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: parseInt(process.env.PORT) || 5173,
+    port: Number(process.env.VITE_PORT) || 5173,
   },
   resolve: {
     alias: {
