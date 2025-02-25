@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Settings } from "lucide-react";
 
 interface Message {
   id: number;
@@ -30,7 +31,6 @@ function ChatPage() {
   const currentUserId = 1; // Change this when integrating authentication
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // ✅ WebSocket Handling (Fix for correct order)
   const { sendMessage } = useSocket(name!, (newMessageOrHistory) => {
     if (!initialized && Array.isArray(newMessageOrHistory)) {
       // 🔹 First WebSocket history load → reverse it to correct order (oldest first)
@@ -42,12 +42,10 @@ function ChatPage() {
     }
   });
 
-  // ✅ Auto-scroll to the last message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ✅ Fetch joined chat rooms
   useEffect(() => {
     const fetchRooms = async () => {
       try {
@@ -63,7 +61,6 @@ function ChatPage() {
     fetchRooms();
   }, []);
 
-  // ✅ Handle message sending
   const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -78,7 +75,6 @@ function ChatPage() {
     setMessage("");
   };
 
-  // ✅ Handle group selection
   const handleGroupClick = (groupName: string) => {
     navigate(`/chat/${groupName}`);
   };
@@ -86,15 +82,16 @@ function ChatPage() {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <Card className="w-64 h-full rounded-none bg-white border-r">
-        <CardHeader>
+      <Card className="w-[330px] h-full rounded-none bg-white border-r">
+        <CardHeader className="flex justify-between w-full">
           <CardTitle>Chats</CardTitle>
+          <Settings />
         </CardHeader>
         <ScrollArea className="h-[calc(100vh-60px)]">
           {chatGroups?.map((group) => (
             <div
               key={group?.id}
-              className="p-4 hover:bg-gray-100 cursor-pointer"
+              className={`px-4 py-3 hover:bg-gray-100 cursor-pointer ${name == group?.name && "bg-gray-100"}`}
               onClick={() => handleGroupClick(group?.name)}
             >
               <div className="flex items-center space-x-4">
@@ -126,7 +123,6 @@ function ChatPage() {
               <CardTitle>{name}</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* ✅ Messages Displayed in Correct Order */}
               <ScrollArea className="h-[calc(100vh-200px)] px-4 py-2">
                 {messages.map((msg) => (
                   <div
@@ -160,13 +156,12 @@ function ChatPage() {
                     </div>
                   </div>
                 ))}
-                {/* ✅ Always scroll to the latest message */}
                 <div ref={messagesEndRef} />
               </ScrollArea>
             </CardContent>
           </Card>
           <Separator />
-          {/* ✅ Message Input */}
+
           <form onSubmit={handleSendMessage} className="p-4 flex space-x-2">
             <Input
               value={message}

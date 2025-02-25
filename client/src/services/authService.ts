@@ -7,7 +7,7 @@ export interface User {
   avatar?: string;
 }
 
-// 🔹 User Login
+//  User Login
 export const login = async (
   username: string,
   password: string,
@@ -21,7 +21,18 @@ export const login = async (
   }
 };
 
-// 🔹 Fetch User Info (Protected Route)
+//  User loginWithoutAuth
+export const loginWithoutAuth = async (): Promise<boolean> => {
+  try {
+    const response = await api.post("/auth/loginWithoutAuth");
+    return response.status === 201;
+  } catch (error) {
+    console.error("Login error:", error);
+    throw error;
+  }
+};
+
+//  Fetch User Info (Protected Route)
 export const getUserInfo = async (): Promise<User> => {
   try {
     const response = await api.get("/user");

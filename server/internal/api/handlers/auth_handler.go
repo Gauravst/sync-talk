@@ -54,3 +54,22 @@ func LoginUser(authService services.AuthService, cfg config.Config) http.Handler
 		return
 	}
 }
+
+func LoginWithoutAuth(authService services.AuthService, cfg config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// call here services
+
+		token, err := authService.LoginWithoutAuth(cfg)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		// seting new access token
+		jwtToken.SetAccessToken(w, token, false)
+
+		// return response
+		response.WriteJson(w, http.StatusCreated, map[string]string{"success": "ok"})
+		return
+	}
+}

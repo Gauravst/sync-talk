@@ -43,6 +43,7 @@ func main() {
 
 	// Public routes (No Auth)
 	publicRouter.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
+	publicRouter.HandleFunc("POST /api/auth/loginWithoutAuth", handlers.LoginWithoutAuth(authService, *cfg))
 
 	// Protected routes (Require Auth)
 	router.HandleFunc("GET /api/users", handlers.GetAllUsers(userService))

@@ -7,11 +7,13 @@ import (
 	"github.com/gauravst/real-time-chat/internal/models"
 	"github.com/gauravst/real-time-chat/internal/repositories"
 	"github.com/gauravst/real-time-chat/internal/utils/hashing"
+	withoutauth "github.com/gauravst/real-time-chat/internal/utils/withoutAuth"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthService interface {
 	LoginUser(data *models.LoginRequest, cfg config.Config) (string, error)
+	LoginWithoutAuth(cfg config.Config) (string, error)
 	// RefreshToken(userId int, token string) error
 	GetRefreshToken(userId int) (string, error)
 }
@@ -105,7 +107,7 @@ func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (s
 		"userId":   userId,
 		"username": data.Username,
 		"role":     role,
-		"exp":      time.Now().Add(2 * time.Minute).Unix(),
+		"exp":      time.Now().Add(30 * time.Minute).Unix(),
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims1)
 	accessTokenString, err := accessToken.SignedString([]byte(cfg.JwtPrivateKey))
@@ -113,6 +115,73 @@ func (s *authService) LoginUser(data *models.LoginRequest, cfg config.Config) (s
 		return "", err
 	}
 
+	return accessTokenString, nil
+}
+
+func (s *authService) LoginWithoutAuth(cfg config.Config) (string, error) {
+	// create new username
+	username, err := withoutauth.GenerateUsername("user_", 6)
+	if err != nil {
+		return "", err
+	}
+
+	// create new password and hash
+	password, err := withoutauth.GeneratePassword(12)
+	if err != nil {
+		return "", err
+	}
+
+	hashedPassword, err := hashing.GenerateHashString(password)
+	if err != nil {
+		return "", err
+	}
+
+	// create user here
+	data := &models.LoginRequest{
+		Username: username,
+		Password: hashedPassword,
+	}
+	createdUserData, err := s.authRepo.CreateNewUser(data)
+	if err != nil {
+		return "", err
+	}
+
+	// create accessToken & refreshToken here
+	claims2 := jwt.MapClaims{
+		"userId":   createdUserData.Id,
+		"username": createdUserData.Username,
+		"role":     createdUserData.Role,
+		"exp":      time.Now().Add(24 * 30 * time.Hour).Unix(),
+	}
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims2)
+	refreshTokenString, err := refreshToken.SignedString([]byte(cfg.JwtPrivateKey))
+	if err != nil {
+		return "", err
+	}
+
+	claims1 := jwt.MapClaims{
+		"userId":   createdUserData.Id,
+		"username": createdUserData.Username,
+		"role":     createdUserData.Role,
+		"exp":      time.Now().Add(30 * time.Minute).Unix(),
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims1)
+	accessTokenString, err := accessToken.SignedString([]byte(cfg.JwtPrivateKey))
+	if err != nil {
+		return "", err
+	}
+
+	// create a login here with user info
+	var loginData models.LoginSession
+	loginData.Token = refreshTokenString
+	loginData.UserId = createdUserData.Id
+
+	err = s.authRepo.LoginUser(&loginData)
+	if err != nil {
+		return "", err
+	}
+
+	// send back accessToken
 	return accessTokenString, nil
 }
 

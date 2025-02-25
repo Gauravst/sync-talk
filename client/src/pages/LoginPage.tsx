@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login } from "@/services/authService";
+import { login, loginWithoutAuth } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 
 function LoginPage() {
@@ -35,7 +35,7 @@ function LoginPage() {
 
       setLoginLoading(false);
     } catch (error) {
-      alert("Invalid login credentials");
+      console.log("Invalid login credentials");
       console.log(error);
       setLoginLoading(false);
     }
@@ -43,8 +43,20 @@ function LoginPage() {
 
   const handleLogin2 = async () => {
     setLogin2Loading(true);
-    alert("comming soon");
-    setLogin2Loading(false);
+    try {
+      const isLogin = await loginWithoutAuth();
+      if (isLogin) {
+        navigate(`/rooms`);
+      } else {
+        console.log("Failed to join the room.");
+      }
+
+      setLogin2Loading(false);
+    } catch (error) {
+      console.log("Invalid login credentials");
+      console.log(error);
+      setLogin2Loading(false);
+    }
   };
 
   useEffect(() => {
@@ -63,8 +75,9 @@ function LoginPage() {
           <CardTitle>Welcome To Sync Talk</CardTitle>
           <CardDescription>Create or Login Your account</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form>
+
+        <form onSubmit={handleLogin}>
+          <CardContent>
             <div className="grid w-full items-center gap-4">
               {/* Username Input */}
               <div className="flex flex-col space-y-1.5">
@@ -74,6 +87,7 @@ function LoginPage() {
                   placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  required
                 />
               </div>
               {/* Password Input */}
@@ -85,31 +99,32 @@ function LoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </div>
             </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-2">
-          <Button
-            disabled={loginLoading}
-            onClick={handleLogin}
-            className="w-full"
-          >
-            {loginLoading && <Loader2 className="animate-spin mr-2" />}
-            {loginLoading ? "Please wait" : "Continue"}
-          </Button>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-2">
+            <Button
+              disabled={loginLoading}
+              // onClick={handleLogin}
+              className="w-full"
+            >
+              {loginLoading && <Loader2 className="animate-spin mr-2" />}
+              {loginLoading ? "Please wait" : "Continue"}
+            </Button>
 
-          <Button
-            disabled={login2Loading}
-            onClick={handleLogin2}
-            variant="outline"
-            className="w-full"
-          >
-            {login2Loading && <Loader2 className="animate-spin mr-2" />}
-            {login2Loading ? "Please wait" : "Continue Without Auth"}
-          </Button>
-        </CardFooter>
+            <Button
+              disabled={login2Loading}
+              onClick={handleLogin2}
+              variant="outline"
+              className="w-full"
+            >
+              {login2Loading && <Loader2 className="animate-spin mr-2" />}
+              {login2Loading ? "Please wait" : "Continue Without Auth"}
+            </Button>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

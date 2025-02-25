@@ -57,7 +57,7 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 						"userId":   userData.UserId,
 						"username": userData.Username,
 						"role":     userData.Role,
-						"exp":      time.Now().Add(2 * time.Minute).Unix(),
+						"exp":      time.Now().Add(30 * time.Minute).Unix(),
 					}
 					newAccessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 					newAccessTokenString, err := newAccessToken.SignedString([]byte(cfg.JwtPrivateKey))
