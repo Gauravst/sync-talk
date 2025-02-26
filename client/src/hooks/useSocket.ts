@@ -7,24 +7,25 @@ export const useSocket = (
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
-  const SOCKET_URL = roomName ? `ws://localhost:8080/chat/${roomName}` : null;
+  const SOCKET_URL_ENV = process.env.VITE_REACT_APP_SOCKET_URL;
+  const SOCKET_URL = roomName ? `${SOCKET_URL_ENV}/chat/${roomName}` : null;
 
   useEffect(() => {
     if (!SOCKET_URL) return;
 
     const connectSocket = () => {
       if (socketRef.current) {
-        console.warn("⚠️ WebSocket already exists. Not reconnecting.");
+        console.warn("WebSocket already exists. Not reconnecting.");
         return;
       }
 
-      console.log(`🔗 Connecting to WebSocket: ${SOCKET_URL}`);
+      console.log(`Connecting to WebSocket: ${SOCKET_URL}`);
 
-      // ✅ WebSocket will send cookies automatically (No need to pass extra headers)
+      //  WebSocket will send cookies automatically (No need to pass extra headers)
       const ws = new WebSocket(SOCKET_URL);
 
       ws.onopen = () => {
-        console.log(`✅ Connected to room: ${roomName}`);
+        console.log(`Connected to room: ${roomName}`);
         setSocket(ws);
         socketRef.current = ws;
 
@@ -34,19 +35,19 @@ export const useSocket = (
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          console.log(`📩 New message:`, message);
+          console.log(` New message:`, message);
           if (onMessage) onMessage(message);
         } catch (error) {
-          console.error("❌ Error parsing WebSocket message:", error);
+          console.error("Error parsing WebSocket message:", error);
         }
       };
 
       ws.onerror = (error) => {
-        console.error("❌ WebSocket Error:", error);
+        console.error("WebSocket Error:", error);
       };
 
       ws.onclose = () => {
-        console.warn("⚠️ WebSocket Disconnected. Attempting to reconnect...");
+        console.warn("WebSocket Disconnected. Attempting to reconnect...");
 
         socketRef.current = null;
         setSocket(null);
@@ -69,13 +70,13 @@ export const useSocket = (
         clearTimeout(reconnectTimer.current);
       }
     };
-  }, [roomName]); // 🔥 Depend only on `roomName` to avoid unnecessary reconnects
+  }, [roomName]);
 
   const sendMessage = (message: string) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(message);
     } else {
-      console.warn("⚠️ Cannot send message. WebSocket is not open.");
+      console.warn("Cannot send message. WebSocket is not open.");
     }
   };
 
