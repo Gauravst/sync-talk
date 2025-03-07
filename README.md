@@ -1,5 +1,9 @@
 # Sync Talk - Real-Time Chat App
 
+![Go](https://img.shields.io/badge/Go-1.23-blue)
+![REST API](https://img.shields.io/badge/REST-API-brightgreen)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-blue)
+
 This is a real-time chat application
 
 <br>
