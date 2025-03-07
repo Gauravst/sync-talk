@@ -27,14 +27,10 @@ function LoginPage() {
     event.preventDefault();
     setLoginLoading(true);
     try {
-      const isLogin = await login(username, password);
-      if (isLogin) {
+      await login(username, password);
+      setTimeout(() => {
         navigate(`/chat`);
-      } else {
-        console.log("Failed to join the room.");
-      }
-
-      setLoginLoading(false);
+      }, 100);
     } catch (error) {
       console.log("Invalid login credentials");
       console.log(error);
@@ -42,21 +38,16 @@ function LoginPage() {
     }
   };
 
-  const handleLogin2 = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleLogin2 = async () => {
     setLogin2Loading(true);
     try {
-      const isLogin = await loginWithoutAuth();
-      if (isLogin) {
-        console.log("Login successful, navigating to /rooms...");
+      await loginWithoutAuth();
+      setTimeout(() => {
         navigate(`/rooms`);
-      } else {
-        console.log("Failed to join the room.");
-      }
+      }, 100);
     } catch (error) {
-      console.error("Invalid login credentials", error);
-    } finally {
       setLogin2Loading(false);
+      console.error("Invalid login credentials", error);
     }
   };
 
@@ -77,6 +68,7 @@ function LoginPage() {
           <CardDescription>Create or Login Your account</CardDescription>
         </CardHeader>
 
+        {/* Form submits with handleLogin */}
         <form onSubmit={handleLogin}>
           <CardContent>
             <div className="grid w-full items-center gap-4">
@@ -106,26 +98,25 @@ function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
-            <Button
-              disabled={loginLoading}
-              // onClick={handleLogin}
-              className="w-full"
-            >
+            {/* Submit button - triggers handleLogin */}
+            <Button disabled={loginLoading} type="submit" className="w-full">
               {loginLoading && <Loader2 className="animate-spin mr-2" />}
               {loginLoading ? "Please wait" : "Continue"}
             </Button>
-
-            <Button
-              disabled={login2Loading}
-              onClick={handleLogin2}
-              variant="outline"
-              className="w-full"
-            >
-              {login2Loading && <Loader2 className="animate-spin mr-2" />}
-              {login2Loading ? "Please wait" : "Continue Without Auth"}
-            </Button>
           </CardFooter>
         </form>
+
+        <CardFooter className="flex flex-col gap-2">
+          <Button
+            disabled={login2Loading}
+            onClick={handleLogin2}
+            variant="outline"
+            className="w-full"
+          >
+            {login2Loading && <Loader2 className="animate-spin mr-2" />}
+            {login2Loading ? "Please wait" : "Continue Without Auth"}
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );

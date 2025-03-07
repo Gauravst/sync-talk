@@ -1,6 +1,12 @@
 # Sync Talk - Real-Time Chat App
 
-This is a real-time chat application built with the following technologies:
+This is a real-time chat application
+
+<br>
+<img src="https://raw.githubusercontent.com/Gauravst/me/refs/heads/main/public/sync-talk-2.png" alt="Project Screenshot" />
+<br>
+
+Built with the following technologies:
 
 - **Frontend:** React, ShadCN UI
 - **Backend:** Golang

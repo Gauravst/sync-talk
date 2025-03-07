@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Hash, Users } from "lucide-react";
 import Header from "@/components/rooms/Header";
 import {
-  ChatRoom,
   getChatRooms,
   getJoinedRoom,
   joinChatRoom,
@@ -27,6 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ChatRoom } from "@/types/messageTypes";
 
 function RoomsPage() {
   const [searchTerm, setSearchTerm] = useState("");
