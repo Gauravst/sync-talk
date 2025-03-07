@@ -66,6 +66,9 @@ func main() {
 	// WebSocket route
 	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg))
 
+	// get old chats for a room
+	router.HandleFunc("GET /api/chat/{roomName}/{limit}", handlers.GetOldChats(chatService))
+
 	// Merge both routers
 	mainRouter := http.NewServeMux()
 	mainRouter.Handle("/api/auth/", publicRouter)                     // Public routes (No Auth)

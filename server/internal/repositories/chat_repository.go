@@ -34,7 +34,7 @@ func NewChatRepository(db *sql.DB) ChatRepository {
 }
 
 func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
-	query := `SELECT id, name , userId, profilePic FROM chatRoom`
+	query := `SELECT id, name, members, description, userId FROM chatRoom`
 
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -45,7 +45,7 @@ func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
 	var data []*models.ChatRoom
 	for rows.Next() {
 		room := &models.ChatRoom{}
-		err := rows.Scan(&room.Id, &room.Name, &room.UserId, &room.ProfilePic)
+		err := rows.Scan(&room.Id, &room.Name, &room.Members, &room.Description, &room.UserId)
 		if err != nil {
 			return nil, err
 		}
@@ -62,8 +62,8 @@ func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
 
 func (r *chatRepository) GetChatRoomByName(name string) (*models.ChatRoom, error) {
 	var data *models.ChatRoom
-	query := `SELECT id, name, userId, profilePic FROM chatRoom WHERE name = $1`
-	err := r.db.QueryRow(query, name).Scan(&data.Id, &data.Name, &data.UserId, &data.ProfilePic)
+	query := `SELECT id, name, members, description, userId FROM chatRoom WHERE name = $1`
+	err := r.db.QueryRow(query, name).Scan(&data.Id, &data.Name, &data.Members, &data.Description, &data.UserId)
 	if err != nil {
 		return data, err
 	}
@@ -71,9 +71,9 @@ func (r *chatRepository) GetChatRoomByName(name string) (*models.ChatRoom, error
 }
 
 func (r *chatRepository) UpdateChatRoom(data *models.ChatRoomRequest) error {
-	query := `UPDATE chatRoom SET name = $1, userId = $2, profilePic = $3 WHERE name = $4 RETURNING id, name, userId, profilePic`
-	row := r.db.QueryRow(query, data.Name, data.UserId, data.ProfilePic, data.Name)
-	err := row.Scan(&data.Id, &data.Name, &data.UserId, &data.ProfilePic)
+	query := `UPDATE chatRoom SET name = $1, userId = $2, members = $3, description = $4 WHERE name = $5 RETURNING id, name, members, description, userId`
+	row := r.db.QueryRow(query, data.Name, data.UserId, data.Members, data.Description, data.Name)
+	err := row.Scan(&data.Id, &data.Name, &data.Members, &data.Description, &data.UserId)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,17 @@ func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.M
 	}
 
 	var messages []*models.MessageRequest
-	query := `SELECT id, userId, content, roomName, createdAt, updatedAt FROM messages WHERE roomName = $1 ORDER BY createdAt DESC LIMIT $2`
+	query := `
+    SELECT * FROM (
+        SELECT m.id, m.userId, u.username, m.content, m.roomName, m.createdAt, m.updatedAt
+        FROM messages m
+        JOIN users u ON m.userId = u.id
+        WHERE m.roomName = $1
+        ORDER BY m.createdAt DESC
+        LIMIT $2
+    ) subquery
+    ORDER BY createdAt ASC;
+`
 
 	rows, err := r.db.Query(query, roomName, limit)
 	if err != nil {
@@ -125,7 +135,7 @@ func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.M
 
 	for rows.Next() {
 		msg := &models.MessageRequest{}
-		err := rows.Scan(&msg.Id, &msg.UserId, &msg.Content, &msg.RoomName, &msg.CreatedAt, &msg.UpdatedAt)
+		err := rows.Scan(&msg.Id, &msg.UserId, &msg.Username, &msg.Content, &msg.RoomName, &msg.CreatedAt, &msg.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -167,7 +177,7 @@ func (r *chatRepository) JoinRoom(data *models.JoinRoomRequest) error {
 func (r *chatRepository) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) {
 	query := `
 		SELECT 
-			chatRoom.id, chatRoom.name, chatRoom.userId, chatRoom.profilePic
+			chatRoom.id, chatRoom.name, chatRoom.members, chatRoom.description, chatRoom.userId
 		FROM 
 			groupMembers 
 		JOIN 
@@ -187,7 +197,7 @@ func (r *chatRepository) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) 
 	var data []*models.ChatRoom
 	for rows.Next() {
 		room := &models.ChatRoom{}
-		err := rows.Scan(&room.Id, &room.Name, &room.UserId, &room.ProfilePic)
+		err := rows.Scan(&room.Id, &room.Name, &room.Members, &room.Description, &room.UserId)
 		if err != nil {
 			return nil, err
 		}

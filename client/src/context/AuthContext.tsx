@@ -9,7 +9,7 @@ import axios from "axios";
 
 // Define the shape of the user object
 interface User {
-  id: number;
+  userId: number;
   username: string;
 }
 
@@ -28,11 +28,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const baseApi = import.meta.env.VITE_REACT_APP_API_URL;
 
   // Check login status on page load
   useEffect(() => {
     axios
-      .get<User>("http://localhost:8080/api/user", {
+      .get<User>(`${baseApi}/user`, {
         withCredentials: true,
       })
       .then((response) => setUser(response.data))
@@ -40,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .finally(() => setLoading(false));
   }, []);
 
+  // NOTE : this login and logout is not used and these fuction is temp
   // Login function
   const login = async (credentials: { username: string; password: string }) => {
     try {

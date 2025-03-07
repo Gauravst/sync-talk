@@ -23,7 +23,8 @@ function LoginPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [login2Loading, setLogin2Loading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoginLoading(true);
     try {
       const isLogin = await login(username, password);
@@ -41,12 +42,11 @@ function LoginPage() {
     }
   };
 
-  const handleLogin2 = async () => {
+  const handleLogin2 = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLogin2Loading(true);
     try {
       const isLogin = await loginWithoutAuth();
-      console.log("Login status:", isLogin); // Debugging log
-
       if (isLogin) {
         console.log("Login successful, navigating to /rooms...");
         navigate(`/rooms`);
@@ -70,7 +70,7 @@ function LoginPage() {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-500">
+    <div className="flex items-center justify-center min-h-screen">
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle>Welcome To Sync Talk</CardTitle>

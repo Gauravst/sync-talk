@@ -16,15 +16,18 @@ type LoginRequest struct {
 }
 
 type ChatRoomRequest struct {
-	Id         int    `json:"id"`
-	Name       string `json:"name" validate:"required"`
-	ProfilePic string `json:"profilePic"`
-	UserId     int    `json:"userId", validate:"required"`
+	Id          int    `json:"id"`
+	Name        string `json:"name" validate:"required"`
+	Members     int    `json:"members"`
+	Description string `json:"description" validate:"required"`
+	UserId      int    `json:"userId"`
 }
 
 type MessageRequest struct {
 	Id        int       `json:"id"`
+	Type      string    `json:"type"`
 	UserId    int       `json:"userId" validate:"required"`
+	Username  string    `json:"username"`
 	RoomName  string    `json:"roomName" validate:"required"`
 	Content   string    `json:"content" validate:"required"`
 	CreatedAt time.Time `json:"created_at"`
@@ -35,4 +38,9 @@ type JoinRoomRequest struct {
 	Id       int    `json:"id"`
 	UserId   int    `json:"userId" validate:"required"`
 	RoomName string `json:"roomName" validate:"required"`
+}
+
+type OnlineUserCountRequest struct {
+	Type  string `json:"type"`
+	Count int    `json:"count"`
 }

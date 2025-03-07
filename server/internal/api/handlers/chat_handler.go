@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gauravst/real-time-chat/internal/api/middleware"
@@ -19,9 +20,10 @@ import (
 
 // upgrader to upgrade HTTP connection to Websocket
 var (
-	upgrader  = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
-	rooms     = make(map[string][]*websocket.Conn)
-	roomMutex sync.Mutex
+	upgrader   = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	rooms      = make(map[string][]*websocket.Conn)
+	onlineUser = make(map[string]int)
+	roomMutex  sync.Mutex
 )
 
 func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerFunc {
@@ -70,22 +72,14 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 			return
 		}
 
-		oldMessages, err := chatService.GetOldMessages(roomName, 20)
-		if err != nil {
-			log.Println("Failed to fetch old messages:", err)
-			return
-		}
-
-		// Send old messages to the user
-		for _, msg := range oldMessages {
-			msgJSON, _ := json.Marshal(msg)
-			conn.WriteMessage(websocket.TextMessage, msgJSON)
-		}
-
 		// Add connection to the room
 		roomMutex.Lock()
 		rooms[roomName] = append(rooms[roomName], conn)
+		onlineUser[roomName]++
 		roomMutex.Unlock()
+
+		// Broadcast the updated online user count
+		go broadcastOnlineUsers(roomName)
 
 		slog.Info("WebSocket connection established")
 
@@ -108,6 +102,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 
 			// save message in db here
 			newMessageData := &models.MessageRequest{
+				Type:    "chat",
 				Content: msg.Content,
 				UserId:  currentUser.UserId,
 			}
@@ -118,7 +113,8 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 			}
 
 			// send message
-			broadcastMessage(roomName, conn, createdMessage)
+			createdMessage.Type = "chat"
+			go broadcastMessage(roomName, conn, createdMessage)
 		}
 
 		// remove connection
@@ -142,9 +138,35 @@ func broadcastMessage(roomName string, sender *websocket.Conn, message *models.M
 	// Send the JSON message to all clients **except the sender**
 	for _, conn := range clients {
 		if conn == sender {
-			continue // Don't send the message back to the sender
+			continue
 		}
 
+		if err := conn.WriteMessage(websocket.TextMessage, jsonMessage); err != nil {
+			log.Println("Failed to send message:", err)
+		}
+	}
+}
+
+func broadcastOnlineUsers(roomName string) {
+	roomMutex.Lock()
+	defer roomMutex.Unlock()
+
+	clients := rooms[roomName]
+	count := onlineUser[roomName]
+
+	data := &models.OnlineUserCountRequest{
+		Type:  "onlineUser",
+		Count: count,
+	}
+
+	// Convert the message struct to JSON
+	jsonMessage, err := json.Marshal(data)
+	if err != nil {
+		log.Println("Failed to marshal message:", err)
+		return
+	}
+
+	for _, conn := range clients {
 		if err := conn.WriteMessage(websocket.TextMessage, jsonMessage); err != nil {
 			log.Println("Failed to send message:", err)
 		}
@@ -162,6 +184,14 @@ func removeConnection(roomName string, conn *websocket.Conn) {
 			break
 		}
 	}
+
+	// decrease the online user count
+	if onlineUser[roomName] > 0 {
+		onlineUser[roomName]--
+	}
+
+	// Broadcast updated online users count
+	go broadcastOnlineUsers(roomName)
 }
 
 func GetAllChatRoom(chatService services.ChatService) http.HandlerFunc {
@@ -447,6 +477,60 @@ func LeaveRoom(chatService services.ChatService) http.HandlerFunc {
 		}
 
 		response.WriteJson(w, http.StatusOK, "User Leaved Room")
+		return
+	}
+}
+
+func GetOldChats(chatService services.ChatService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// get data from parms
+		name := r.PathValue("roomName")
+		limit := r.PathValue("limit")
+		if name == " " || limit == " " {
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("parms not found")))
+			return
+		}
+
+		intLimit, err := strconv.Atoi(limit)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		//check user join or not in room
+		isMember, err := chatService.CheckChatRoomMember(userData.UserId, name)
+		if err != nil {
+			slog.Error(err.Error())
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("Error: something went worng.")))
+			return
+		}
+
+		if !isMember {
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("Error: You are not a member of this group.")))
+			return
+		}
+
+		oldMessages, err := chatService.GetOldMessages(name, intLimit)
+		if err != nil {
+			log.Println("Failed to fetch old messages:", err)
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, oldMessages)
 		return
 	}
 }

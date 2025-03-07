@@ -1,13 +1,15 @@
+import { Message } from "@/types/messageTypes";
 import { useEffect, useRef, useState } from "react";
 
 export const useSocket = (
   roomName: string | null,
-  onMessage?: (msg: any) => void,
+  onMessage?: (msg: Message) => void,
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
-  const SOCKET_URL_ENV = process.env.VITE_REACT_APP_SOCKET_URL;
+  const [onlineUsers, setOnlineUsers] = useState<number>(0);
+  const SOCKET_URL_ENV = import.meta.env.VITE_REACT_APP_SOCKET_URL;
   const SOCKET_URL = roomName ? `${SOCKET_URL_ENV}/chat/${roomName}` : null;
 
   useEffect(() => {
@@ -15,13 +17,9 @@ export const useSocket = (
 
     const connectSocket = () => {
       if (socketRef.current) {
-        console.warn("WebSocket already exists. Not reconnecting.");
         return;
       }
 
-      console.log(`Connecting to WebSocket: ${SOCKET_URL}`);
-
-      //  WebSocket will send cookies automatically (No need to pass extra headers)
       const ws = new WebSocket(SOCKET_URL);
 
       ws.onopen = () => {
@@ -34,9 +32,13 @@ export const useSocket = (
 
       ws.onmessage = (event) => {
         try {
-          const message = JSON.parse(event.data);
-          console.log(` New message:`, message);
-          if (onMessage) onMessage(message);
+          const data = JSON.parse(event.data);
+          console.log("data--", data);
+          if (data.type === "chat") {
+            if (onMessage) onMessage(data);
+          } else {
+            setOnlineUsers(data.count);
+          }
         } catch (error) {
           console.error("Error parsing WebSocket message:", error);
         }
@@ -80,5 +82,5 @@ export const useSocket = (
     }
   };
 
-  return { socket, sendMessage };
+  return { socket, sendMessage, onlineUsers };
 };
