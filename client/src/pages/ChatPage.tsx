@@ -34,7 +34,10 @@ function ChatPage() {
       if (!initialized && Array.isArray(newMessageOrHistory)) {
         setMessages(newMessageOrHistory);
         setInitialized(true);
-      } else if (typeof newMessageOrHistory === "object") {
+      } else if (
+        typeof newMessageOrHistory === "object" &&
+        !Array.isArray(newMessageOrHistory)
+      ) {
         setMessages((prev) => [...prev, newMessageOrHistory]);
       }
     },
@@ -47,7 +50,12 @@ function ChatPage() {
       setLoading(true);
       try {
         const data = await getOldMessage(name, 20);
-        setMessages(data);
+        if (Array.isArray(data)) {
+          setMessages(data);
+        } else {
+          console.error("Expected an array but got:", data);
+          setMessages([]); // Fallback to an empty array
+        }
       } catch (error) {
         console.error("Failed to load chat rooms", error);
       } finally {
@@ -66,14 +74,19 @@ function ChatPage() {
     const fetchRooms = async () => {
       try {
         const rooms = await getJoinedRoom();
-        setChatGroups(rooms);
+        if (Array.isArray(rooms)) {
+          setChatGroups(rooms);
 
-        if (name) {
-          const isRoomJoined = rooms.some((room) => room.name === name);
-          setIsJoined(isRoomJoined);
+          if (name) {
+            const isRoomJoined = rooms.some((room) => room.name === name);
+            setIsJoined(isRoomJoined);
+          }
+
+          if (!rooms || rooms.length === 0) navigate("/rooms");
+        } else {
+          console.error("Expected an array but got:", rooms);
+          setChatGroups([]); // Fallback to an empty array
         }
-
-        if (!rooms || rooms.length === 0) navigate("/rooms");
       } catch (error) {
         console.error("Failed to load chat rooms", error);
       } finally {
@@ -148,10 +161,6 @@ function ChatPage() {
                         >
                           <Hash className="h-4 w-4" />
                           {group?.name}
-                          {/*<Badge className="ml-auto">
-                            {Math.floor(Math.random() * 30) + 1}
-                          </Badge>
-                          */}
                         </Button>
                       ))}
                     </div>
@@ -193,7 +202,7 @@ function ChatPage() {
                             {messages.length > 0 ? (
                               messages.map((msg) => (
                                 <div
-                                  key={msg?.id}
+                                  key={msg?.time} // Use a unique key like `time`
                                   className={`flex ${
                                     msg?.userId === user?.userId
                                       ? "justify-end"
