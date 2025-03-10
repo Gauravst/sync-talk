@@ -38,7 +38,7 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 					refreshToken, err := authService.GetRefreshToken(userData.UserId)
 					if err != nil {
 						//remove accessToken here
-						jwtToken.RemoveAccessToken(w, false)
+						jwtToken.RemoveAccessToken(w, r, false)
 						response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(err))
 						return
 					}
@@ -47,7 +47,7 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 					_, err = jwtToken.VerifyJwtAndGetData[models.AccessToken](refreshToken, cfg.JwtPrivateKey)
 					if err != nil {
 						// remove accessToken here
-						jwtToken.RemoveAccessToken(w, false)
+						jwtToken.RemoveAccessToken(w, r, false)
 						response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(err))
 						return
 					}
@@ -62,15 +62,15 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 					newAccessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 					newAccessTokenString, err := newAccessToken.SignedString([]byte(cfg.JwtPrivateKey))
 					if err != nil {
-						jwtToken.RemoveAccessToken(w, false)
+						jwtToken.RemoveAccessToken(w, r, false)
 						response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(err))
 						return
 					}
 
-					jwtToken.SetAccessToken(w, newAccessTokenString, false)
+					jwtToken.SetAccessToken(w, r, newAccessTokenString, false)
 				} else {
 					//remove accessToken here
-					jwtToken.RemoveAccessToken(w, false)
+					jwtToken.RemoveAccessToken(w, r, false)
 					response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(err))
 					return
 				}

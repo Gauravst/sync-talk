@@ -47,7 +47,7 @@ func LoginUser(authService services.AuthService, cfg config.Config) http.Handler
 		}
 
 		// seting new access token
-		jwtToken.SetAccessToken(w, token, false)
+		jwtToken.SetAccessToken(w, r, token, false)
 
 		// return response
 		response.WriteJson(w, http.StatusCreated, map[string]string{"success": "ok"})
@@ -66,7 +66,7 @@ func LoginWithoutAuth(authService services.AuthService, cfg config.Config) http.
 		}
 
 		// seting new access token
-		jwtToken.SetAccessToken(w, token, false)
+		jwtToken.SetAccessToken(w, r, token, false)
 
 		// return response
 		response.WriteJson(w, http.StatusCreated, map[string]string{"success": "ok"})

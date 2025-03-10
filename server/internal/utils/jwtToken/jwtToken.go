@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -69,26 +70,65 @@ func CreateNewToken(data interface{}, key string) (string, error) {
 	return tokenString, nil
 }
 
-func SetAccessToken(w http.ResponseWriter, token string, secure bool) {
+func SetAccessToken(w http.ResponseWriter, r *http.Request, token string, secure bool) {
+	isLocal := isLocalRequest(r)
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "accessToken",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   getSecureSetting(isLocal, secure),
+		SameSite: getSameSiteMode(isLocal),
 	})
 }
 
-func RemoveAccessToken(w http.ResponseWriter, secure bool) {
+// RemoveAccessToken removes the accessToken cookie
+func RemoveAccessToken(w http.ResponseWriter, r *http.Request, secure bool) {
+	isLocal := isLocalRequest(r)
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "accessToken",
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   secure, // Set based on your environment
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   -1, // Immediately expire the cookie
+		Secure:   getSecureSetting(isLocal, secure),
+		SameSite: getSameSiteMode(isLocal),
+		MaxAge:   -1, // Expire immediately
 		Expires:  time.Unix(0, 0),
 	})
+}
+
+// isLocalRequest checks if the request is from localhost
+func isLocalRequest(r *http.Request) bool {
+	host := r.Host
+	forwarded := r.Header.Get("X-Forwarded-For")
+
+	// Check if host is localhost or 127.0.0.1
+	if strings.Contains(host, "localhost") || strings.HasPrefix(host, "127.0.0.1") {
+		return true
+	}
+
+	// Handle proxies (e.g., Docker, Nginx, ngrok)
+	if forwarded == "127.0.0.1" {
+		return true
+	}
+
+	return false
+}
+
+// getSameSiteMode returns the correct SameSite mode based on the environment
+func getSameSiteMode(isLocal bool) http.SameSite {
+	if isLocal {
+		return http.SameSiteLaxMode // Allow local dev
+	}
+	return http.SameSiteNoneMode // Required for cross-origin cookies in production
+}
+
+// getSecureSetting ensures Secure=true in production but respects param in localhost
+func getSecureSetting(isLocal bool, secure bool) bool {
+	if isLocal {
+		return secure // Use whatever secure setting is passed in local
+	}
+	return true // Force Secure=true in production
 }
