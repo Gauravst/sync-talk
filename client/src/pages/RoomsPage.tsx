@@ -82,7 +82,7 @@ function RoomsPage() {
   const handleJoinRoom = async (roomName: string) => {
     const isJoined = await joinChatRoom(roomName);
     if (isJoined) {
-      navigate(`/chat/${roomName}`);
+      navigate(`/chat/${roomName}`, { replace: true });
     }
   };
 

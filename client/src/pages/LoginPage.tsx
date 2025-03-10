@@ -27,10 +27,11 @@ function LoginPage() {
     event.preventDefault();
     setLoginLoading(true);
     try {
-      await login(username, password);
-      setTimeout(() => {
-        navigate(`/chat`);
-      }, 100);
+      const loginStatus = await login(username, password);
+      if (loginStatus) {
+        navigate(`/chat`, { replace: true });
+        window.location.reload();
+      }
     } catch (error) {
       console.log("Invalid login credentials");
       console.log(error);
@@ -41,10 +42,11 @@ function LoginPage() {
   const handleLogin2 = async () => {
     setLogin2Loading(true);
     try {
-      await loginWithoutAuth();
-      setTimeout(() => {
-        navigate(`/rooms`);
-      }, 100);
+      const loginStatus = await loginWithoutAuth();
+      if (loginStatus) {
+        navigate(`/rooms`, { replace: true });
+        window.location.reload();
+      }
     } catch (error) {
       setLogin2Loading(false);
       console.error("Invalid login credentials", error);
@@ -52,13 +54,10 @@ function LoginPage() {
   };
 
   useEffect(() => {
-    if (loading) return;
     if (user) {
-      navigate("/chat");
+      navigate("/chat", { replace: true });
     }
-  }, [user, loading, navigate]);
-
-  if (loading) return <div>Loading...</div>;
+  }, [user, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -97,7 +96,7 @@ function LoginPage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col gap-2">
+          <CardFooter className="flex flex-col gap-2 pb-2">
             {/* Submit button - triggers handleLogin */}
             <Button disabled={loginLoading} type="submit" className="w-full">
               {loginLoading && <Loader2 className="animate-spin mr-2" />}
@@ -106,7 +105,7 @@ function LoginPage() {
           </CardFooter>
         </form>
 
-        <CardFooter className="flex flex-col gap-2">
+        <CardFooter className="flex flex-col">
           <Button
             disabled={login2Loading}
             onClick={handleLogin2}

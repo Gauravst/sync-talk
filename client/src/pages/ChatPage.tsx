@@ -114,7 +114,7 @@ function ChatPage() {
   };
 
   const handleGroupClick = (groupName: string) => {
-    navigate(`/chat/${groupName}`);
+    navigate(`/chat/${groupName}`, { replace: true });
   };
 
   const handleJoinRoom = () => {

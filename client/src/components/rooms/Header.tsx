@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 const Header = () => {
   const navigate = useNavigate();
   const handleBackToChat = () => {
-    navigate("/chat");
+    navigate("/chat", { replace: true });
   };
 
   return (
