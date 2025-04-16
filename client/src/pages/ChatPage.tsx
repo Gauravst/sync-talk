@@ -12,20 +12,22 @@ import { Badge } from "@/components/ui/badge";
 import { Hash, MessageCircle, Plus, Search, Send, Users } from "lucide-react";
 import Header from "@/components/chats/Header";
 import { useAuth } from "@/context/AuthContext";
-import { Message, ChatRoom } from "@/types/messageTypes";
+import { ChatRoomProps, MessageProps } from "@/types/messageTypes";
+import ProfileDialog from "@/components/chats/ProfileSection";
 
 function ChatPage() {
   const { user } = useAuth();
 
   const [message, setMessage] = useState("");
   const { name } = useParams();
-  const [chatGroups, setChatGroups] = useState<ChatRoom[]>([]);
+  const [chatGroups, setChatGroups] = useState<ChatRoomProps[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageProps[]>([]);
   const [initialized, setInitialized] = useState<boolean>(false);
   const [isJoined, setIsJoined] = useState<boolean>(true);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [profilePopup, setProfilePopup] = useState(false);
   console.log(loading);
 
   const { sendMessage, onlineUsers } = useSocket(
@@ -54,7 +56,7 @@ function ChatPage() {
           setMessages(data);
         } else {
           console.error("Expected an array but got:", data);
-          setMessages([]); // Fallback to an empty array
+          setMessages([]);
         }
       } catch (error) {
         console.error("Failed to load chat rooms", error);
@@ -100,8 +102,8 @@ function ChatPage() {
     e.preventDefault();
     if (!message.trim()) return;
 
-    const newMessageData: Message = {
-      userId: user?.userId ?? 0,
+    const newMessageData: MessageProps = {
+      userId: user?.id ?? 0,
       username: user?.username ?? "Unknown",
       roomName: name!,
       content: message,
@@ -126,9 +128,10 @@ function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex relative flex-col min-h-screen bg-background">
       {/* Header */}
-      <Header />
+      <Header handleProfileClick={() => setProfilePopup(true)} />
+      <ProfileDialog open={profilePopup} setOpen={setProfilePopup} />
 
       {/* Main Content */}
       <div className="flex-1">

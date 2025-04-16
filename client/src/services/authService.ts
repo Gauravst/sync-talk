@@ -1,20 +1,14 @@
+import { UserProps } from "@/types";
 import api from "./api";
 
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  avatar?: string;
-}
-
 //  User Login
-export const login = async (
+export const loginUser = async (
   username: string,
   password: string,
-): Promise<boolean> => {
+): Promise<UserProps> => {
   try {
     const response = await api.post("/auth/login", { username, password });
-    return response.status === 200 || response.status === 201;
+    return response.data;
   } catch (error) {
     console.error("Login error:", error);
     throw error;
@@ -22,10 +16,10 @@ export const login = async (
 };
 
 //  User loginWithoutAuth
-export const loginWithoutAuth = async (): Promise<boolean> => {
+export const loginWithoutAuth = async (): Promise<UserProps> => {
   try {
     const response = await api.post("/auth/loginWithoutAuth");
-    return response.status === 201;
+    return response.data;
   } catch (error) {
     console.error("Login error:", error);
     throw error;
@@ -33,7 +27,7 @@ export const loginWithoutAuth = async (): Promise<boolean> => {
 };
 
 //  Fetch User Info (Protected Route)
-export const getUserInfo = async (): Promise<User> => {
+export const getUserInfo = async (): Promise<UserProps> => {
   try {
     const response = await api.get("/user");
     return response.data;
@@ -43,7 +37,13 @@ export const getUserInfo = async (): Promise<User> => {
   }
 };
 
-// export const logout = () => {
-//   localStorage.removeItem("token");
-//   window.location.href = "/login";
-// };
+export const logoutUser = async (): Promise<void> => {
+  try {
+    const response = await api.post("/user/logout");
+    console.log(response);
+    return;
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+    throw error;
+  }
+};

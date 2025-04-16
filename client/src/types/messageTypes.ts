@@ -1,4 +1,4 @@
-export interface Message {
+export interface MessageProps {
   id?: number;
   userId: number;
   username: string;
@@ -10,7 +10,7 @@ export interface Message {
   updatedAt?: string;
 }
 
-export interface ChatRoom {
+export interface ChatRoomProps {
   id: string;
   name: string;
   description: string;

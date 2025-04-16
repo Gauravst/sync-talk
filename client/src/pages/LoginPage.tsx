@@ -12,14 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login, loginWithoutAuth } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, login, loginWithoutData } = useAuth();
   const [loginLoading, setLoginLoading] = useState(false);
   const [login2Loading, setLogin2Loading] = useState(false);
 
@@ -27,14 +26,10 @@ function LoginPage() {
     event.preventDefault();
     setLoginLoading(true);
     try {
-      const loginStatus = await login(username, password);
-      if (loginStatus) {
-        navigate(`/chat`, { replace: true });
-        window.location.reload();
-      }
+      await login(username, password);
+      navigate("/chat");
     } catch (error) {
-      console.log("Invalid login credentials");
-      console.log(error);
+      console.log("Invalid login credentials or somthing went worng", error);
       setLoginLoading(false);
     }
   };
@@ -42,14 +37,11 @@ function LoginPage() {
   const handleLogin2 = async () => {
     setLogin2Loading(true);
     try {
-      const loginStatus = await loginWithoutAuth();
-      if (loginStatus) {
-        navigate(`/rooms`, { replace: true });
-        window.location.reload();
-      }
+      await loginWithoutData();
+      navigate("/rooms");
     } catch (error) {
       setLogin2Loading(false);
-      console.error("Invalid login credentials", error);
+      console.error("Login Failed", error);
     }
   };
 
