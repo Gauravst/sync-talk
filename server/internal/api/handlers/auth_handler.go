@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/gauravst/real-time-chat/internal/api/middleware"
 	"github.com/gauravst/real-time-chat/internal/config"
 	"github.com/gauravst/real-time-chat/internal/models"
 	"github.com/gauravst/real-time-chat/internal/services"
@@ -40,7 +41,7 @@ func LoginUser(authService services.AuthService, cfg config.Config) http.Handler
 
 		// call here services
 
-		token, err := authService.LoginUser(&user, cfg)
+		token, userData, err := authService.LoginUser(&user, cfg)
 		if err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
@@ -50,7 +51,7 @@ func LoginUser(authService services.AuthService, cfg config.Config) http.Handler
 		jwtToken.SetAccessToken(w, r, token, false)
 
 		// return response
-		response.WriteJson(w, http.StatusCreated, map[string]string{"success": "ok"})
+		response.WriteJson(w, http.StatusCreated, userData)
 		return
 	}
 }
@@ -59,7 +60,7 @@ func LoginWithoutAuth(authService services.AuthService, cfg config.Config) http.
 	return func(w http.ResponseWriter, r *http.Request) {
 		// call here services
 
-		token, err := authService.LoginWithoutAuth(cfg)
+		token, userData, err := authService.LoginWithoutAuth(cfg)
 		if err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
@@ -69,7 +70,37 @@ func LoginWithoutAuth(authService services.AuthService, cfg config.Config) http.
 		jwtToken.SetAccessToken(w, r, token, false)
 
 		// return response
-		response.WriteJson(w, http.StatusCreated, map[string]string{"success": "ok"})
+		response.WriteJson(w, http.StatusCreated, userData)
+		return
+	}
+}
+
+func LogoutUser(authService services.AuthService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		err := authService.LogoutUser(userData.UserId)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		// remove access token from client
+		jwtToken.RemoveAccessToken(w, r, false)
+
+		// return response
+		response.WriteJson(w, http.StatusOK, map[string]string{"success": "ok"})
 		return
 	}
 }

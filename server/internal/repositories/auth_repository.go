@@ -15,6 +15,7 @@ type AuthRepository interface {
 	CheckUserByUsername(username string) (models.User, error)
 	// RefreshToken(userId int, token string) error
 	GetRefreshToken(userId int) (string, error)
+	LogoutUser(userId int) error
 }
 
 // userRepository implements the AuthRepository interface
@@ -89,4 +90,13 @@ func (r *authRepository) GetRefreshToken(userId int) (string, error) {
 		return token, err
 	}
 	return token, nil
+}
+
+func (r *authRepository) LogoutUser(userId int) error {
+	query := `DELETE FROM loginSession WHERE userId = $1`
+	_, err := r.db.Exec(query, userId)
+	if err != nil {
+		return err
+	}
+	return nil
 }

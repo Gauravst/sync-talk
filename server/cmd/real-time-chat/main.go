@@ -49,6 +49,7 @@ func main() {
 	// Protected routes (Require Auth)
 	router.HandleFunc("GET /api/users", handlers.GetAllUsers(userService))
 	router.HandleFunc("GET /api/user", handlers.GetUser(userService))
+	router.HandleFunc("POST /api/user/logout", handlers.LogoutUser(authService))
 	router.HandleFunc("GET /api/user/{id}", handlers.GetUserById(userService))
 	router.HandleFunc("PUT /api/user/{id}", handlers.UpdateUser(userService))
 	router.HandleFunc("DELETE /api/user/{id}", handlers.DeleteUser(userService))
