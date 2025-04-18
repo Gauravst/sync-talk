@@ -1,8 +1,8 @@
 import api from "./api";
-import { ChatRoom, Message } from "@/types/messageTypes";
+import { ChatRoomProps, MessageProps } from "@/types/messageTypes";
 
 // Fetch chat rooms from API
-export const getChatRooms = async (): Promise<ChatRoom[]> => {
+export const getChatRooms = async (): Promise<ChatRoomProps[]> => {
   try {
     const response = await api.get("/room");
     return response.data;
@@ -24,7 +24,7 @@ export const joinChatRoom = async (roomName: string): Promise<boolean> => {
 };
 
 // to get joined chat room by user
-export const getJoinedRoom = async (): Promise<ChatRoom[]> => {
+export const getJoinedRoom = async (): Promise<ChatRoomProps[]> => {
   try {
     const response = await api.get(`/join`);
     return response.data;
@@ -49,12 +49,25 @@ export const leaveRoom = async (roomName: string): Promise<boolean> => {
 export const getOldMessage = async (
   roomName: string,
   limit: number,
-): Promise<Message[]> => {
+): Promise<MessageProps[]> => {
   try {
     const response = await api.get(`/chat/${roomName}/${limit}`);
     return response.data;
   } catch (error) {
     console.error("Error geting old chat rooms:", error);
+    throw error;
+  }
+};
+
+export const createNewRoom = async (
+  username: string,
+  description: string,
+): Promise<ChatRoomProps> => {
+  try {
+    const response = await api.post("/room", { username, description });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating chat rooms:", error);
     throw error;
   }
 };

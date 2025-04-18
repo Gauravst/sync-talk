@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 type HeaderProps = {
   handleProfileClick: () => void;
@@ -18,8 +18,8 @@ const Header = ({ handleProfileClick }: HeaderProps) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -27,9 +27,11 @@ const Header = ({ handleProfileClick }: HeaderProps) => {
     <>
       <header className="px-5 sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="w-full flex h-14 items-center">
-          <div className="w-full flex items-center gap-2 font-bold text-xl">
-            <img className="w-7 h-7" src="/icon.png" alt="logo" />
-            <span>Sync Talk</span>
+          <div className="w-full flex items-center font-bold text-xl">
+            <Link to="/" className="flex gap-2 justify-center items-center">
+              <img className="w-7 h-7" src="/icon.png" alt="logo" />
+              <span>Sync Talk</span>
+            </Link>
           </div>
           <div className="ml-auto flex items-center gap-4">
             <DropdownMenu>
@@ -44,9 +46,6 @@ const Header = ({ handleProfileClick }: HeaderProps) => {
                   onClick={handleProfileClick}
                 >
                   Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Setting
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

@@ -60,7 +60,14 @@ func GetUser(userService services.UserService) http.HandlerFunc {
 			return
 		}
 
-		response.WriteJson(w, http.StatusOK, userData)
+		data := &models.User{
+			Id:         userData.UserId,
+			Username:   userData.Username,
+			Role:       userData.Role,
+			ProfilePic: userData.ProfilePic,
+		}
+
+		response.WriteJson(w, http.StatusOK, data)
 	}
 }
 

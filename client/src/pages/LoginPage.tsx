@@ -45,11 +45,11 @@ function LoginPage() {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      navigate("/chat", { replace: true });
-    }
-  }, [user, navigate]);
+  // useEffect(() => {
+  //   if (user) {
+  //     navigate("/chat", { replace: true });
+  //   }
+  // }, [user, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

@@ -47,3 +47,17 @@ export const logoutUser = async (): Promise<void> => {
     throw error;
   }
 };
+
+export const updateUser = async (formData: FormData): Promise<UserProps> => {
+  try {
+    const response = await api.put("/user", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating user:", error);
+    throw error;
+  }
+};

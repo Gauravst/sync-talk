@@ -34,9 +34,9 @@ func NewChatRepository(db *sql.DB) ChatRepository {
 }
 
 func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
-	query := `SELECT id, name, members, description, userId FROM chatRoom`
+	query := `SELECT id, name, members, private, description, userId FROM chatRoom WHERE private = $1`
 
-	rows, err := r.db.Query(query)
+	rows, err := r.db.Query(query, false)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
 	var data []*models.ChatRoom
 	for rows.Next() {
 		room := &models.ChatRoom{}
-		err := rows.Scan(&room.Id, &room.Name, &room.Members, &room.Description, &room.UserId)
+		err := rows.Scan(&room.Id, &room.Name, &room.Members, &room.Private, &room.Description, &room.UserId)
 		if err != nil {
 			return nil, err
 		}
@@ -62,8 +62,8 @@ func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
 
 func (r *chatRepository) GetChatRoomByName(name string) (*models.ChatRoom, error) {
 	var data *models.ChatRoom
-	query := `SELECT id, name, members, description, userId FROM chatRoom WHERE name = $1`
-	err := r.db.QueryRow(query, name).Scan(&data.Id, &data.Name, &data.Members, &data.Description, &data.UserId)
+	query := `SELECT id, name, members, private, description, userId FROM chatRoom WHERE name = $1 AND private = $2`
+	err := r.db.QueryRow(query, name, false).Scan(&data.Id, &data.Name, &data.Members, &data.Private, &data.Description, &data.UserId)
 	if err != nil {
 		return data, err
 	}
@@ -90,8 +90,8 @@ func (r *chatRepository) DeleteChatRoom(name string) error {
 }
 
 func (r *chatRepository) CreateNewChatRoom(data *models.ChatRoomRequest) error {
-	query := `INSERT INTO chatRoom (name, userId) VALUES ($1, $2)`
-	_, err := r.db.Exec(query, data.Name, data.UserId)
+	query := `INSERT INTO chatRoom (name, userId, description) VALUES ($1, $2, $3)`
+	_, err := r.db.Exec(query, data.Name, data.UserId, data.Description)
 	if err != nil {
 		return err
 	}

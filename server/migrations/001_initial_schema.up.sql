@@ -4,6 +4,7 @@ CREATE TABLE users (
   username TEXT NOT NULL,
   password TEXT NOT NULL,
   role TEXT DEFAULT 'USER',
+  profilePic TEXT,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -50,62 +51,89 @@ VALUES
   ('test_user', 'test_password');
 
 INSERT INTO
-  chatRoom (name, members, description, userId)
+  chatRoom (name, members, description, userId, private)
 VALUES
   (
     'general',
     24,
     'General discussion for all topics',
-    1
+    1,
+    false
   ),
   (
     'tech-talk',
     18,
     'Discussions about technology and programming',
-    1
+    1,
+    false
   ),
   (
     'golang',
     12,
     'Everything related to Go programming language',
-    1
+    1,
+    false
   ),
-  ('react', 15, 'React.js discussions and help', 1),
+  (
+    'react',
+    15,
+    'React.js discussions and help',
+    1,
+    false
+  ),
   (
     'websockets',
     8,
     'WebSockets implementation and best practices',
-    1
+    1,
+    false
   ),
   (
     'gaming',
     32,
     'Gaming discussions and community',
-    1
+    1,
+    false
   ),
   (
     'music',
     20,
     'Music recommendations and discussions',
-    1
+    1,
+    false
   ),
   (
     'movies',
     16,
     'Movie discussions and recommendations',
-    1
+    1,
+    false
   ),
   (
     'books',
     14,
     'Book club and literature discussions',
-    1
+    1,
+    false
   ),
-  ('design', 22, 'UI/UX design discussions', 1),
+  (
+    'design',
+    22,
+    'UI/UX design discussions',
+    1,
+    false
+  ),
   (
     'crypto',
     19,
     'Cryptocurrency and blockchain discussions',
-    1
+    1,
+    false
   ),
-  ('fitness', 17, 'Fitness tips and motivation', 1);
+  (
+    'fitness',
+    17,
+    'Fitness tips and motivation',
+    1,
+    false
+  );

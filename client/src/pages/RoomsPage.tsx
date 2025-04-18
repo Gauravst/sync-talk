@@ -26,13 +26,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ChatRoom } from "@/types/messageTypes";
+import { ChatRoomProps } from "@/types/messageTypes";
 
 function RoomsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [availableRooms, setAvailableRooms] = useState<ChatRoom[]>([]);
-  const [joinedRooms, setJoinedRooms] = useState<ChatRoom[]>([]);
-  const [filteredRooms, setFilteredRooms] = useState<ChatRoom[]>([]);
+  const [availableRooms, setAvailableRooms] = useState<ChatRoomProps[]>([]);
+  const [joinedRooms, setJoinedRooms] = useState<ChatRoomProps[]>([]);
+  const [filteredRooms, setFilteredRooms] = useState<ChatRoomProps[]>([]);
   const [leaveRoomName, setLeaveRoomName] = useState<string | null>(null);
   const navigate = useNavigate();
 

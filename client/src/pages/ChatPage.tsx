@@ -9,11 +9,20 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Hash, MessageCircle, Plus, Search, Send, Users } from "lucide-react";
+import {
+  File,
+  Hash,
+  MessageCircle,
+  Plus,
+  Search,
+  Send,
+  Users,
+} from "lucide-react";
 import Header from "@/components/chats/Header";
 import { useAuth } from "@/context/AuthContext";
 import { ChatRoomProps, MessageProps } from "@/types/messageTypes";
 import ProfileDialog from "@/components/chats/ProfileSection";
+import CreateNewRoom from "@/components/chats/CreateNewRoom";
 
 function ChatPage() {
   const { user } = useAuth();
@@ -28,6 +37,7 @@ function ChatPage() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [profilePopup, setProfilePopup] = useState(false);
+  const [newRoomPopup, setNewRoomPopup] = useState(false);
   console.log(loading);
 
   const { sendMessage, onlineUsers } = useSocket(
@@ -131,7 +141,13 @@ function ChatPage() {
     <div className="flex relative flex-col min-h-screen bg-background">
       {/* Header */}
       <Header handleProfileClick={() => setProfilePopup(true)} />
-      <ProfileDialog open={profilePopup} setOpen={setProfilePopup} />
+      <ProfileDialog
+        open={profilePopup}
+        setOpen={setProfilePopup}
+        userData={user!}
+      />
+
+      <CreateNewRoom open={newRoomPopup} setOpen={setNewRoomPopup} />
 
       {/* Main Content */}
       <div className="flex-1">
@@ -143,7 +159,11 @@ function ChatPage() {
                 <div className="p-4 border-b">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-lg">Chat Rooms</h3>
-                    <Button variant="ghost" size="icon">
+                    <Button
+                      onClick={() => setNewRoomPopup(true)}
+                      variant="ghost"
+                      size="icon"
+                    >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
@@ -203,16 +223,16 @@ function ChatPage() {
                         {isJoined ? (
                           <div className="space-y-4">
                             {messages.length > 0 ? (
-                              messages.map((msg) => (
+                              messages.map((msg, index) => (
                                 <div
-                                  key={msg?.time} // Use a unique key like `time`
+                                  key={index}
                                   className={`flex ${
-                                    msg?.userId === user?.userId
+                                    msg?.userId === user?.id
                                       ? "justify-end"
                                       : "justify-start"
                                   } my-2`}
                                 >
-                                  {msg?.userId !== user?.userId && (
+                                  {msg?.userId !== user?.id && (
                                     <Avatar className="mr-2">
                                       <AvatarFallback>
                                         {msg?.username?.slice(0, 2) || "U"}
@@ -221,12 +241,12 @@ function ChatPage() {
                                   )}
                                   <div
                                     className={`p-3 max-w-[75%] rounded-lg ${
-                                      msg?.userId === user?.userId
+                                      msg?.userId === user?.id
                                         ? "bg-primary text-primary-foreground"
                                         : "bg-muted text-foreground"
                                     }`}
                                   >
-                                    {msg?.userId !== user?.userId && (
+                                    {msg?.userId !== user?.id && (
                                       <p className="text-xs font-medium mb-1">
                                         {msg?.username || "User"}
                                       </p>
@@ -271,11 +291,14 @@ function ChatPage() {
                             onSubmit={handleSendMessage}
                             className="p-4 flex space-x-2"
                           >
+                            <Button size="icon">
+                              <File className="h-4 w-4" />
+                            </Button>
                             <Input
                               value={message}
                               onChange={(e) => setMessage(e.target.value)}
                               placeholder="Type your message..."
-                              className="flex-1"
+                              className="flex-1 min:h-4"
                             />
                             <Button type="submit" size="icon">
                               <Send className="h-4 w-4" />

@@ -23,8 +23,9 @@ const App = () => {
               <Route path="/rooms" element={<RoomsPage />} />
               <Route path="/chat/:name" element={<ChatPage />} />
               <Route path="/chat" element={<ChatPage />} />
-              <Route path="*" element={<NotFoundPage />} />
             </Route>
+
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
       </AuthProvider>
