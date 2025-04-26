@@ -1,5 +1,9 @@
 import api from "./api";
-import { ChatRoomProps, MessageProps } from "@/types/messageTypes";
+import {
+  ChatRoomProps,
+  MessageProps,
+  PrivateChatRoomProps,
+} from "@/types/messageTypes";
 
 // Fetch chat rooms from API
 export const getChatRooms = async (): Promise<ChatRoomProps[]> => {
@@ -19,6 +23,20 @@ export const joinChatRoom = async (roomName: string): Promise<boolean> => {
     return response.status === 200;
   } catch (error) {
     console.error("Error joining chat room:", error);
+    return false;
+  }
+};
+
+// to join chat room
+export const joinPrivateChatRoom = async (
+  roomName: string,
+  roomCode: string,
+): Promise<boolean> => {
+  try {
+    const response = await api.post(`/join/${roomName}/${roomCode}`);
+    return response.status === 200;
+  } catch (error) {
+    console.error("Error joining private chat room:", error);
     return false;
   }
 };
@@ -64,10 +82,34 @@ export const createNewRoom = async (
   description: string,
 ): Promise<ChatRoomProps> => {
   try {
-    const response = await api.post("/room", { username, description });
+    const response = await api.post("/room", { name: username, description });
     return response.data;
   } catch (error) {
     console.error("Error creating chat rooms:", error);
+    throw error;
+  }
+};
+
+// to get PrivateChatRoom data using code
+export const getPrivateChatRoom = async (
+  code: string,
+): Promise<PrivateChatRoomProps> => {
+  try {
+    const response = await api.get(`/room/private/${code}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error geting Private chat room data :", error);
+    throw error;
+  }
+};
+
+// to join private chat room
+export const joinPrivateRoom = async (code: string): Promise<boolean> => {
+  try {
+    const response = await api.post(`/join/private/${code}`);
+    return response.status === 200;
+  } catch (error) {
+    console.error("Error joining chat room:", error);
     throw error;
   }
 };

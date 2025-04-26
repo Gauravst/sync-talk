@@ -30,7 +30,7 @@ const Header = () => {
           >
             <FaGithub size={20} />
           </Link>
-          <Link to="/login">
+          <Link to={user ? "/chat" : "/login"}>
             <Button variant="default">
               {user ? "Go to Chat" : "Get Started"}
             </Button>

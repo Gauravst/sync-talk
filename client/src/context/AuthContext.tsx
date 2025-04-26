@@ -15,6 +15,7 @@ import {
 
 interface AuthContextType {
   user: UserProps | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithoutData: () => Promise<void>;
   logout: () => Promise<void>;
@@ -28,6 +29,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserProps | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -36,6 +38,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(currentUser);
       } catch (error) {
         console.error("Failed to fetch user", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchUser();
@@ -69,7 +73,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithoutData, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, loginWithoutData, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -36,9 +36,9 @@ const Header = ({ handleProfileClick }: HeaderProps) => {
           <div className="ml-auto flex items-center gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <Button variant="ghost" size="icon">
+                <div className="p-2 bg-gray-900 rounded-md">
                   <Settings className="h-5 w-5" />
-                </Button>
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="mr-3">
                 <DropdownMenuItem

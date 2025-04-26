@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Search, Hash, Users } from "lucide-react";
+import { Search, Hash, Users, Lock, Globe } from "lucide-react";
 import Header from "@/components/rooms/Header";
 import {
   getChatRooms,
@@ -27,6 +27,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ChatRoomProps } from "@/types/messageTypes";
+import { useAuth } from "@/context/AuthContext";
+import PrivateRoomJoinModal from "@/components/rooms/PrivateRoomJoinModal";
 
 function RoomsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +36,8 @@ function RoomsPage() {
   const [joinedRooms, setJoinedRooms] = useState<ChatRoomProps[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<ChatRoomProps[]>([]);
   const [leaveRoomName, setLeaveRoomName] = useState<string | null>(null);
+  const [openPrivateRoomJoin, setPrivateRoomJoin] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,22 +93,36 @@ function RoomsPage() {
   return (
     <div className="w-full items-center flex flex-col min-h-screen bg-background text-white">
       <Header />
+      <PrivateRoomJoinModal
+        open={openPrivateRoomJoin}
+        setOpen={setPrivateRoomJoin}
+      />
       <div className="w-full fixed top-16 container py-8">
         <div className="w-full max-w-4xl mx-auto">
-          <div className="mb-8 text-center">
+          <div className="mb-12 text-center">
             <h1 className="text-3xl font-bold mb-4">Discover Chat Rooms</h1>
             <p className="text-muted-foreground mb-6">
               Find and join rooms based on your interests and start chatting
               with the community.
             </p>
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search for rooms..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex w-full justify-center items-center gap-x-4">
+              <div className="relative w-[300px]">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search for Public rooms..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <p className="text-sm text-gray-400">OR</p>
+              <Button
+                onClick={() => setPrivateRoomJoin(true)}
+                className="flex items-center gap-2"
+              >
+                <Lock className="h-4 w-4" />
+                Join Private Room
+              </Button>
             </div>
           </div>
           <ScrollArea className="h-[calc(100vh-16rem)]">
@@ -117,21 +135,55 @@ function RoomsPage() {
                   <Card key={room.id} className="border-2 border-muted">
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-center">
-                        <CardTitle className="flex items-center gap-2">
-                          <Hash className="h-5 w-5 text-primary" />
-                          {room.name}
-                        </CardTitle>
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Hash className="h-5 w-5 text-primary" />
+                            {room.name}
+                          </CardTitle>
+                          <div className="flex gap-2 mt-2">
+                            {/* Owner Tag */}
+                            {room.userId === user.id && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs cursor-pointer"
+                              >
+                                You are the owner
+                              </Badge>
+                            )}
+
+                            {/* Privacy Tag */}
+                            <Badge
+                              variant="outline"
+                              className="text-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              {room.private ? (
+                                <>
+                                  <Lock className="h-3 w-3" />
+                                  Private
+                                </>
+                              ) : (
+                                <>
+                                  <Globe className="h-3 w-3" />
+                                  Public
+                                </>
+                              )}
+                            </Badge>
+                          </div>
+                        </div>
+
                         <Badge variant="outline" className="gap-1">
                           <Users className="h-3 w-3" />
                           <span>{room.members} members</span>
                         </Badge>
                       </div>
                     </CardHeader>
+
                     <CardContent>
                       <p className="text-muted-foreground">
                         {room.description}
                       </p>
                     </CardContent>
+
                     <CardFooter className="flex gap-2">
                       {isJoined ? (
                         <>

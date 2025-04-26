@@ -16,4 +16,17 @@ export interface ChatRoomProps {
   description: string;
   members: string;
   userId: number;
+  private: boolean;
+  code?: string;
+}
+
+export interface PrivateChatRoomProps {
+  id: string;
+  name: string;
+  description: string;
+  members: number;
+  userId: number;
+  private: boolean;
+  code?: string;
+  isMember: boolean;
 }
