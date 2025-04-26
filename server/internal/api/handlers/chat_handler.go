@@ -196,7 +196,19 @@ func removeConnection(roomName string, conn *websocket.Conn) {
 
 func GetAllChatRoom(chatService services.ChatService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := chatService.GetAllChatRoom()
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+		data, err := chatService.GetAllChatRoom(userData)
 		if err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
@@ -415,7 +427,7 @@ func JoinRoom(chatService services.ChatService) http.HandlerFunc {
 			return
 		}
 
-		response.WriteJson(w, http.StatusOK, "Chat Room Join")
+		response.WriteJson(w, http.StatusOK, "Chat Room Joined")
 		return
 	}
 }
@@ -531,6 +543,101 @@ func GetOldChats(chatService services.ChatService) http.HandlerFunc {
 		}
 
 		response.WriteJson(w, http.StatusOK, oldMessages)
+		return
+	}
+}
+
+func GetPrivateChatRoom(chatService services.ChatService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// get data from parms
+		code := r.PathValue("code")
+		if code == " " {
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("parms not found")))
+			return
+		}
+
+		//check private room using room code
+		roomData, err := chatService.GetPrivateChatRoom(code)
+		if err != nil {
+			slog.Error(err.Error())
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("Error: room not found")))
+			return
+		}
+
+		//check user join or not in room
+		isMember, err := chatService.CheckChatRoomMember(userData.UserId, roomData.Name)
+		if err != nil {
+			slog.Error(err.Error())
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("Error: something went worng.")))
+			return
+		}
+
+		if !isMember {
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("Error: You are not a member of this group.")))
+			return
+		}
+
+		data := &models.PrivateRoomUsingCodeResponse{
+			Id:          roomData.Id,
+			Name:        roomData.Name,
+			Members:     roomData.Members,
+			Code:        roomData.Code,
+			Description: roomData.Description,
+			UserId:      roomData.UserId,
+			IsMember:    isMember,
+		}
+
+		response.WriteJson(w, http.StatusOK, data)
+		return
+	}
+}
+
+func JoinPrivateRoom(chatService services.ChatService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get value from context
+		userDataRaw := r.Context().Value(middleware.UserDataKey)
+		if userDataRaw == nil {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// Correct the type assertion to *models.AccessToken
+		userData, ok := userDataRaw.(*models.AccessToken)
+		if !ok {
+			response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(fmt.Errorf("Unauthorized")))
+			return
+		}
+
+		// get data from parms
+		code := r.PathValue("code")
+		if code == " " {
+			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("parms not found")))
+			return
+		}
+
+		// JoinPrivateRoom
+		err := chatService.JoinPrivateRoom(code, userData)
+		if err != nil {
+			slog.Error(err.Error())
+			response.WriteJson(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, "Room Joined")
 		return
 	}
 }

@@ -2,14 +2,17 @@ package repositories
 
 import (
 	"database/sql"
+	_ "embed"
 	"errors"
 	"log"
 
+	"github.com/gauravst/real-time-chat/internal/database"
 	"github.com/gauravst/real-time-chat/internal/models"
 )
 
 type ChatRepository interface {
-	GetAllChatRoom() ([]*models.ChatRoom, error)
+	GetAllChatRoom(userData *models.AccessToken) ([]*models.ChatRoom, error)
+	GetPrivateChatRoom(code string) (*models.ChatRoom, error)
 	GetChatRoomByName(name string) (*models.ChatRoom, error)
 	UpdateChatRoom(data *models.ChatRoomRequest) error
 	DeleteChatRoom(name string) error
@@ -18,25 +21,31 @@ type ChatRepository interface {
 	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
 	CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageRequest, error)
 	JoinRoom(data *models.JoinRoomRequest) error
+	JoinPrivateRoom(data *models.JoinRoomRequest) error
 	GetAllJoinRoom(userId int) ([]*models.ChatRoom, error)
 	LeaveRoom(userId int, roomName string) error
 }
 
 // userRepository implements the AuthRepository interface
 type chatRepository struct {
-	db *sql.DB
+	db      *sql.DB
+	queries *database.QueryManager
 }
 
-func NewChatRepository(db *sql.DB) ChatRepository {
+func NewChatRepository(db *sql.DB, qm *database.QueryManager) ChatRepository {
 	return &chatRepository{
-		db: db,
+		db:      db,
+		queries: qm,
 	}
 }
 
-func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
-	query := `SELECT id, name, members, private, description, userId FROM chatRoom WHERE private = $1`
+func (r *chatRepository) GetAllChatRoom(userData *models.AccessToken) ([]*models.ChatRoom, error) {
+	query, err := r.queries.Get("chat", "GetAllChatRoom")
+	if err != nil {
+		return nil, err
+	}
 
-	rows, err := r.db.Query(query, false)
+	rows, err := r.db.Query(query, userData.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +54,7 @@ func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
 	var data []*models.ChatRoom
 	for rows.Next() {
 		room := &models.ChatRoom{}
-		err := rows.Scan(&room.Id, &room.Name, &room.Members, &room.Private, &room.Description, &room.UserId)
+		err := rows.Scan(&room.Id, &room.Name, &room.Private, &room.Description, &room.UserId, &room.Members)
 		if err != nil {
 			return nil, err
 		}
@@ -60,10 +69,24 @@ func (r *chatRepository) GetAllChatRoom() ([]*models.ChatRoom, error) {
 	return data, nil
 }
 
+func (r *chatRepository) GetPrivateChatRoom(code string) (*models.ChatRoom, error) {
+	var data *models.ChatRoom
+	query, err := r.queries.Get("chat", "GetPrivateRoomUsingCode")
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.db.QueryRow(query, code).Scan(&data.Id, &data.Name, &data.Private, &data.Description, &data.UserId)
+	if err != nil {
+		return data, err
+	}
+	return data, nil
+}
+
 func (r *chatRepository) GetChatRoomByName(name string) (*models.ChatRoom, error) {
 	var data *models.ChatRoom
-	query := `SELECT id, name, members, private, description, userId FROM chatRoom WHERE name = $1 AND private = $2`
-	err := r.db.QueryRow(query, name, false).Scan(&data.Id, &data.Name, &data.Members, &data.Private, &data.Description, &data.UserId)
+	query := `SELECT id, name, private, description, userId FROM chatRoom WHERE name = $1 AND private = $2`
+	err := r.db.QueryRow(query, name, false).Scan(&data.Id, &data.Name, &data.Private, &data.Description, &data.UserId)
 	if err != nil {
 		return data, err
 	}
@@ -90,8 +113,8 @@ func (r *chatRepository) DeleteChatRoom(name string) error {
 }
 
 func (r *chatRepository) CreateNewChatRoom(data *models.ChatRoomRequest) error {
-	query := `INSERT INTO chatRoom (name, userId, description) VALUES ($1, $2, $3)`
-	_, err := r.db.Exec(query, data.Name, data.UserId, data.Description)
+	query := `INSERT INTO chatRoom (name, code, userId, description) VALUES ($1, $2, $3, $4)`
+	_, err := r.db.Exec(query, data.Name, data.Code, data.UserId, data.Description)
 	if err != nil {
 		return err
 	}
@@ -174,19 +197,20 @@ func (r *chatRepository) JoinRoom(data *models.JoinRoomRequest) error {
 	return nil
 }
 
+func (r *chatRepository) JoinPrivateRoom(data *models.JoinRoomRequest) error {
+	query := `INSERT INTO groupMembers (userId, roomName) VALUES ($1, $2)`
+	_, err := r.db.Exec(query, data.UserId, data.RoomName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *chatRepository) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) {
-	query := `
-		SELECT 
-			chatRoom.id, chatRoom.name, chatRoom.members, chatRoom.description, chatRoom.userId
-		FROM 
-			groupMembers 
-		JOIN 
-			chatRoom 
-		ON 
-			groupMembers.roomName = chatRoom.name 
-		WHERE 
-			groupMembers.userId = $1;
-	`
+	query, err := r.queries.Get("chat", "GetAllJoinRoom")
+	if err != nil {
+		return nil, err
+	}
 
 	rows, err := r.db.Query(query, userId)
 	if err != nil {
@@ -197,7 +221,7 @@ func (r *chatRepository) GetAllJoinRoom(userId int) ([]*models.ChatRoom, error) 
 	var data []*models.ChatRoom
 	for rows.Next() {
 		room := &models.ChatRoom{}
-		err := rows.Scan(&room.Id, &room.Name, &room.Members, &room.Description, &room.UserId)
+		err := rows.Scan(&room.Id, &room.Name, &room.Description, &room.Private, &room.UserId, &room.Members)
 		if err != nil {
 			return nil, err
 		}

@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS groupmember;
+
+DROP TABLE IF EXISTS loginsession;
+
+DROP TABLE IF EXISTS messages;
+
+DROP TABLE IF EXISTS schema_migration;
+
+DROP TABLE IF EXISTS chatroom;
+
+DROP TABLE IF EXISTS users;

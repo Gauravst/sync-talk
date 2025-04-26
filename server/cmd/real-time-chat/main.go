@@ -20,6 +20,12 @@ import (
 )
 
 func main() {
+	// loading queries
+	queryManager, err := database.NewQueryManager()
+	if err != nil {
+		log.Fatalf("Failed to load SQL queries: %v", err)
+	}
+
 	// load config
 	cfg := config.ConfigMustLoad()
 
@@ -34,7 +40,7 @@ func main() {
 	authRepo := repositories.NewAuthRepository(database.DB)
 	authService := services.NewAuthService(authRepo)
 
-	chatRepo := repositories.NewChatRepository(database.DB)
+	chatRepo := repositories.NewChatRepository(database.DB, queryManager)
 	chatService := services.NewChatService(chatRepo)
 
 	// Setup routers
@@ -53,8 +59,10 @@ func main() {
 	router.HandleFunc("GET /api/user/{id}", handlers.GetUserById(userService))
 	router.HandleFunc("PUT /api/user/{id}", handlers.UpdateUser(userService))
 	router.HandleFunc("DELETE /api/user/{id}", handlers.DeleteUser(userService))
+
 	router.HandleFunc("GET /api/room", handlers.GetAllChatRoom(chatService))
 	router.HandleFunc("GET /api/room/{name}", handlers.GetChatRoomByName(chatService))
+	router.HandleFunc("GET /api/room/private/{code}", handlers.GetPrivateChatRoom(chatService))
 	router.HandleFunc("POST /api/room", handlers.CreateNewChatRoom(chatService))
 	router.HandleFunc("PUT /api/room/{name}", handlers.UpdateChatRoom(chatService))
 	router.HandleFunc("DELETE /api/room/{name}", handlers.DeleteChatRoom(chatService))
@@ -62,6 +70,7 @@ func main() {
 	// Join room
 	router.HandleFunc("GET /api/join", handlers.GetAllJoinRoom(chatService))
 	router.HandleFunc("POST /api/join/{name}", handlers.JoinRoom(chatService))
+	router.HandleFunc("POST /api/join/private/{code}", handlers.JoinPrivateRoom(chatService))
 	router.HandleFunc("DELETE /api/join/{name}", handlers.LeaveRoom(chatService))
 
 	// WebSocket route
@@ -110,7 +119,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := server.Shutdown(ctx)
+	err = server.Shutdown(ctx)
 	if err != nil {
 		slog.Error("failed to shutdown server", slog.String("error", err.Error()))
 	}
