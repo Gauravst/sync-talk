@@ -1,9 +1,9 @@
-import { Message } from "@/types/messageTypes";
+import { MessageProps } from "@/types/messageTypes";
 import { useEffect, useRef, useState } from "react";
 
 export const useSocket = (
   roomName: string | null,
-  onMessage?: (msg: Message) => void,
+  onMessage?: (msg: MessageProps) => void,
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
