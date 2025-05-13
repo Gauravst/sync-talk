@@ -50,6 +50,10 @@ function ChatPage() {
     navigate(`/chat/${groupName}`, { replace: true });
   };
 
+  const updateRoomsList = (room: ChatRoomProps) => {
+    setChatGroups((prev) => [room, ...prev]);
+  };
+
   return (
     <div className="flex relative flex-col min-h-screen bg-background">
       {/* Header */}
@@ -60,7 +64,11 @@ function ChatPage() {
         userData={user!}
       />
 
-      <CreateNewRoom open={newRoomPopup} setOpen={setNewRoomPopup} />
+      <CreateNewRoom
+        open={newRoomPopup}
+        setOpen={setNewRoomPopup}
+        updateRoomsList={updateRoomsList}
+      />
 
       {/* Main Content */}
       <div className="flex-1">

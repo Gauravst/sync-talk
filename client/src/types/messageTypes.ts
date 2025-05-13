@@ -1,3 +1,5 @@
+import { UploadedFileProps } from "./fileTypes";
+
 export interface MessageProps {
   id?: number;
   userId: number;
@@ -6,6 +8,7 @@ export interface MessageProps {
   content: string;
   profilePic?: string;
   time?: number;
+  file? : UploadedFileProps
   createdAt?: string;
   updatedAt?: string;
 }

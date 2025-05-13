@@ -19,7 +19,7 @@ type ChatRepository interface {
 	CreateNewChatRoom(data *models.ChatRoomRequest) error
 	CheckChatRoomMember(userId int, roomName string) (bool, error)
 	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
-	CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageRequest, error)
+	CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageResponse, error)
 	JoinRoom(data *models.JoinRoomRequest) error
 	JoinPrivateRoom(data *models.JoinRoomRequest) error
 	GetAllJoinRoom(userId int) ([]*models.ChatRoom, error)
@@ -172,8 +172,8 @@ func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.M
 	return messages, nil
 }
 
-func (r *chatRepository) CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageRequest, error) {
-	var message models.MessageRequest
+func (r *chatRepository) CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageResponse, error) {
+	var message models.MessageResponse
 
 	query := `INSERT INTO messages (userId, roomName, content) 
   VALUES ($1, $2, $3) RETURNING id, userId, roomName, content, createdAt, updatedAt`

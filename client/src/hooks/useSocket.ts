@@ -16,9 +16,7 @@ export const useSocket = (
     if (!SOCKET_URL) return;
 
     const connectSocket = () => {
-      if (socketRef.current) {
-        return;
-      }
+      if (socketRef.current) return;
 
       const ws = new WebSocket(SOCKET_URL);
 
@@ -26,16 +24,14 @@ export const useSocket = (
         console.log(`Connected to room: ${roomName}`);
         setSocket(ws);
         socketRef.current = ws;
-
         if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log("data--", data);
           if (data.type === "chat") {
-            if (onMessage) onMessage(data);
+            onMessage?.(data);
           } else {
             setOnlineUsers(data.count);
           }
@@ -49,11 +45,9 @@ export const useSocket = (
       };
 
       ws.onclose = () => {
-        console.warn("WebSocket Disconnected. Attempting to reconnect...");
-
+        console.warn("WebSocket disconnected. Reconnecting...");
         socketRef.current = null;
         setSocket(null);
-
         reconnectTimer.current = setTimeout(connectSocket, 3000);
       };
 
@@ -63,24 +57,28 @@ export const useSocket = (
     connectSocket();
 
     return () => {
-      if (socketRef.current) {
-        console.log("🔌 Closing WebSocket connection...");
-        socketRef.current.close();
-        socketRef.current = null;
-      }
-      if (reconnectTimer.current) {
-        clearTimeout(reconnectTimer.current);
-      }
+      closeSocket();
     };
   }, [roomName]);
 
   const sendMessage = (message: string) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(message);
     } else {
       console.warn("Cannot send message. WebSocket is not open.");
     }
   };
 
-  return { socket, sendMessage, onlineUsers };
+  const closeSocket = () => {
+    if (socketRef.current) {
+      console.log("🔌 Manually closing WebSocket...");
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+    }
+  };
+
+  return { socket, sendMessage, onlineUsers, closeSocket };
 };

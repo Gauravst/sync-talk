@@ -8,4 +8,6 @@ DROP TABLE IF EXISTS schema_migration;
 
 DROP TABLE IF EXISTS chatroom;
 
+DROP TABLE IF EXISTS files;
+
 DROP TABLE IF EXISTS users;

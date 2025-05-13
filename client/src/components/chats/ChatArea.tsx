@@ -15,6 +15,7 @@ import { getOldMessage } from "@/services/chatServices";
 import { useSocket } from "@/hooks/useSocket";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import UploadImagePreview from "./UploadImagePreview";
 
 type ChatAreaProps = {
   name: string;
@@ -35,6 +36,7 @@ const ChatArea = ({ name, isJoined, setIsJoined }: ChatAreaProps) => {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const [initialized, setInitialized] = useState<boolean>(false);
+  console.log(previewUrl)
   console.log(loading);
 
   const { sendMessage, onlineUsers } = useSocket(
@@ -121,12 +123,12 @@ const ChatArea = ({ name, isJoined, setIsJoined }: ChatAreaProps) => {
           setUploadProgress(percent);
         }
       });
-      if (response.url) {
+      if (response.secureUrl) {
         setIsUploading(false);
       }
 
       //send message here
-      console.log(response.url);
+      console.log(response.secureUrl);
       console.log("Selected file:", file);
     }
   };
@@ -181,6 +183,13 @@ const ChatArea = ({ name, isJoined, setIsJoined }: ChatAreaProps) => {
                                 <p className="text-xs font-medium mb-1">
                                   {msg?.username || "User"}
                                 </p>
+                              )}
+                              {msg?.file && (
+                                <UploadImagePreview
+                                  file={msg.file}
+                                  isUploading={isUploading}
+                                  progress={uploadProgress}
+                                />
                               )}
                               <p className="text-sm">{msg?.content}</p>
                             </div>

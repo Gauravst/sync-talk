@@ -13,13 +13,15 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { createNewRoom } from "@/services/chatServices";
+import { ChatRoomProps } from "@/types/messageTypes";
 
 type ProfileProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
+  updateRoomsList: (room: ChatRoomProps) => void;
 };
 
-const CreateNewRoom = ({ open, setOpen }: ProfileProps) => {
+const CreateNewRoom = ({ open, setOpen, updateRoomsList }: ProfileProps) => {
   const [username, setUsername] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,8 @@ const CreateNewRoom = ({ open, setOpen }: ProfileProps) => {
 
   const handleCreateRoomClick = async () => {
     setLoading(true);
-    await createNewRoom(username, description);
+    const data = await createNewRoom(username, description);
+    updateRoomsList(data);
     setLoading(false);
     setOpen(false);
     setUsername("");

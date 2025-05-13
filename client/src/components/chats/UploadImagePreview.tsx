@@ -1,16 +1,22 @@
+import { UploadedFileProps } from "@/types/fileTypes";
+
 type UploadImagePreviewProps = {
-  previewUrl: string;
+  file: UploadedFileProps;
   isUploading: boolean;
   progress: number;
 };
+
 const UploadImagePreview = ({
-  previewUrl,
+  file,
   isUploading,
   progress,
 }: UploadImagePreviewProps) => {
   return (
     <div className="relative w-48 h-48 rounded overflow-hidden">
-      <img src={previewUrl} className="object-cover w-full h-full opacity-70" />
+      <img
+        src={file.secureUrl}
+        className="object-cover w-full h-full opacity-70"
+      />
 
       {/* Loading Overlay */}
       {isUploading && (

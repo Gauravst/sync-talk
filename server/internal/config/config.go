@@ -14,6 +14,12 @@ type HTTPServer struct {
 	Port    int    `yaml:"port" env-required:"true"`
 }
 
+type Cloudinary struct {
+	Name      string `env: "CLOUDINARY_CLOUD_NAME" env-required:"true"`
+	Key       string `env: "CLOUDINARY_API_KEY" env-required:"true"`
+	SecretKey string `env: "CLOUDINARY_API_SECRET" env-required:"true"`
+}
+
 type Config struct {
 	Env           string `yaml:"env" env-required:"true" env-default:"production"`
 	DatabaseUri   string `env:"DATABASE_URI" env-required:"true"`
@@ -21,6 +27,7 @@ type Config struct {
 	ClientUrl     string `env:"CLIENT_URL" env-required:"true"`
 	EnvPort       int    `env:"PORT"`
 	HTTPServer    `yaml:"http_server"`
+	Cloudinary    Cloudinary
 }
 
 func ConfigMustLoad() *Config {

@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import {
   DropdownMenu,
@@ -9,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { useSocket } from "@/hooks/useSocket";
 
 type HeaderProps = {
   handleProfileClick: () => void;
@@ -17,8 +17,10 @@ type HeaderProps = {
 const Header = ({ handleProfileClick }: HeaderProps) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const { closeSocket } = useSocket(null);
 
   const handleLogout = async () => {
+    closeSocket();
     await logout();
     navigate("/login");
   };

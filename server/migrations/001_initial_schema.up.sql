@@ -43,8 +43,24 @@ CREATE TABLE messages (
   roomName TEXT NOT NULL,
   userId INT NOT NULL,
   content TEXT NOT NULL,
+  fileId INT,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (fileId) REFERENCES files (id) ON DELETE SET NULL,
+);
+
+CREATE TABLE files (
+  id SERIAL PRIMARY KEY,
+  publicId TEXT,
+  secureUrl TEXT NOT NULL,
+  format TEXT,
+  resourceType TEXT,
+  size INT,
+  width INT,
+  height INT,
+  originalFilename TEXT NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 );
 
 INSERT INTO

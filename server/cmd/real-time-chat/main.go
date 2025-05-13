@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -15,8 +16,10 @@ import (
 	"github.com/gauravst/real-time-chat/internal/api/middleware"
 	"github.com/gauravst/real-time-chat/internal/config"
 	"github.com/gauravst/real-time-chat/internal/database"
+	"github.com/gauravst/real-time-chat/internal/models"
 	"github.com/gauravst/real-time-chat/internal/repositories"
 	"github.com/gauravst/real-time-chat/internal/services"
+	"github.com/gorilla/websocket"
 )
 
 func main() {
@@ -43,10 +46,22 @@ func main() {
 	chatRepo := repositories.NewChatRepository(database.DB, queryManager)
 	chatService := services.NewChatService(chatRepo)
 
+	fileRepo := repositories.NewFileRepository(database.DB, queryManager)
+	fileService := services.NewFileService(fileRepo, chatRepo)
+
 	// Setup routers
 	router := http.NewServeMux()
 	publicRouter := http.NewServeMux()
 	// publicRouter2 := http.NewServeMux()
+
+	wsServer := &models.WsServer{
+		RoomMutex:  &sync.Mutex{},
+		Rooms:      make(map[string][]*websocket.Conn),
+		OnlineUser: make(map[string]int),
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool { return true },
+		},
+	}
 
 	// Public routes (No Auth)
 	publicRouter.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
@@ -74,8 +89,10 @@ func main() {
 	router.HandleFunc("DELETE /api/join/{name}", handlers.LeaveRoom(chatService))
 
 	// WebSocket route
-	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg))
+	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg, wsServer))
 
+	// upload files
+	router.HandleFunc("POST /api/chat/upload/{name}", handlers.UploadFileInRoom(fileService, *cfg, wsServer))
 	// get old chats for a room
 	router.HandleFunc("GET /api/chat/{roomName}/{limit}", handlers.GetOldChats(chatService))
 

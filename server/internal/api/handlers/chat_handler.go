@@ -7,26 +7,18 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"sync"
 
 	"github.com/gauravst/real-time-chat/internal/api/middleware"
 	"github.com/gauravst/real-time-chat/internal/config"
 	"github.com/gauravst/real-time-chat/internal/models"
 	"github.com/gauravst/real-time-chat/internal/services"
 	"github.com/gauravst/real-time-chat/internal/utils/response"
+	"github.com/gauravst/real-time-chat/internal/utils/ws"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/websocket"
 )
 
-// upgrader to upgrade HTTP connection to Websocket
-var (
-	upgrader   = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
-	rooms      = make(map[string][]*websocket.Conn)
-	onlineUser = make(map[string]int)
-	roomMutex  sync.Mutex
-)
-
-func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerFunc {
+func LiveChat(chatService services.ChatService, cfg config.Config, wsServer *models.WsServer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// geting middleware data
 		userDataRaw := r.Context().Value(middleware.UserDataKey)
@@ -52,7 +44,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 		}
 
 		// Upgrade HTTP connection to WebSocket
-		conn, err := upgrader.Upgrade(w, r, nil)
+		conn, err := wsServer.Upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			slog.Error("failed to upgrade to WebSocket", slog.String("error", err.Error()))
 			return
@@ -73,10 +65,10 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 		}
 
 		// Add connection to the room
-		roomMutex.Lock()
-		rooms[roomName] = append(rooms[roomName], conn)
-		onlineUser[roomName]++
-		roomMutex.Unlock()
+		wsServer.RoomMutex.Lock()
+		wsServer.Rooms[roomName] = append(wsServer.Rooms[roomName], conn)
+		wsServer.OnlineUser[roomName]++
+		wsServer.RoomMutex.Unlock()
 
 		// Broadcast the updated online user count
 		go broadcastOnlineUsers(roomName)
@@ -114,7 +106,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 
 			// send message
 			createdMessage.Type = "chat"
-			go broadcastMessage(roomName, conn, createdMessage)
+			go ws.BroadcastMessage(wsServer, roomName, conn, createdMessage)
 		}
 
 		// remove connection
@@ -122,37 +114,12 @@ func LiveChat(chatService services.ChatService, cfg config.Config) http.HandlerF
 	}
 }
 
-func broadcastMessage(roomName string, sender *websocket.Conn, message *models.MessageRequest) {
-	roomMutex.Lock()
-	defer roomMutex.Unlock()
+func broadcastOnlineUsers(roomName string, wsServer *models.WsServer) {
+	wsServer.RoomMutex.Lock()
+	defer wsServer.RoomMutex.Unlock()
 
-	clients := rooms[roomName]
-
-	// Convert the message struct to JSON
-	jsonMessage, err := json.Marshal(message)
-	if err != nil {
-		log.Println("Failed to marshal message:", err)
-		return
-	}
-
-	// Send the JSON message to all clients **except the sender**
-	for _, conn := range clients {
-		if conn == sender {
-			continue
-		}
-
-		if err := conn.WriteMessage(websocket.TextMessage, jsonMessage); err != nil {
-			log.Println("Failed to send message:", err)
-		}
-	}
-}
-
-func broadcastOnlineUsers(roomName string) {
-	roomMutex.Lock()
-	defer roomMutex.Unlock()
-
-	clients := rooms[roomName]
-	count := onlineUser[roomName]
+	clients := wsServer.Rooms[roomName]
+	count := wsServer.OnlineUser[roomName]
 
 	data := &models.OnlineUserCountRequest{
 		Type:  "onlineUser",
