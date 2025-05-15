@@ -93,10 +93,10 @@ export const createNewRoom = async (
 // to get PrivateChatRoom data using code
 export const getPrivateChatRoom = async (
   code: string,
-): Promise<PrivateChatRoomProps> => {
+): Promise<PrivateChatRoomProps | null> => {
   try {
     const response = await api.get(`/room/private/${code}`);
-    return response.data;
+    return response.data || null;
   } catch (error) {
     console.error("Error geting Private chat room data :", error);
     throw error;

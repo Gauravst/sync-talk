@@ -57,7 +57,7 @@ func main() {
 	wsServer := &models.WsServer{
 		RoomMutex:  &sync.Mutex{},
 		Rooms:      make(map[string][]*websocket.Conn),
-		OnlineUser: make(map[string]int),
+		OnlineUser: make(map[string]map[string]bool),
 		Upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool { return true },
 		},

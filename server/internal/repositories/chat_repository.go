@@ -70,13 +70,13 @@ func (r *chatRepository) GetAllChatRoom(userData *models.AccessToken) ([]*models
 }
 
 func (r *chatRepository) GetPrivateChatRoom(code string) (*models.ChatRoom, error) {
-	var data *models.ChatRoom
+	data := &models.ChatRoom{}
 	query, err := r.queries.Get("chat", "GetPrivateRoomUsingCode")
 	if err != nil {
 		return nil, err
 	}
 
-	err = r.db.QueryRow(query, code).Scan(&data.Id, &data.Name, &data.Private, &data.Description, &data.UserId)
+	err = r.db.QueryRow(query, code).Scan(&data.Id, &data.Name, &data.Private, &data.Description, &data.UserId, &data.Members)
 	if err != nil {
 		return data, err
 	}
@@ -84,9 +84,9 @@ func (r *chatRepository) GetPrivateChatRoom(code string) (*models.ChatRoom, erro
 }
 
 func (r *chatRepository) GetChatRoomByName(name string) (*models.ChatRoom, error) {
-	var data *models.ChatRoom
-	query := `SELECT id, name, private, description, userId FROM chatRoom WHERE name = $1 AND private = $2`
-	err := r.db.QueryRow(query, name, false).Scan(&data.Id, &data.Name, &data.Private, &data.Description, &data.UserId)
+	data := &models.ChatRoom{}
+	query := `SELECT id, name, private, description, userId FROM chatRoom WHERE name = $1`
+	err := r.db.QueryRow(query, name).Scan(&data.Id, &data.Name, &data.Private, &data.Description, &data.UserId)
 	if err != nil {
 		return data, err
 	}

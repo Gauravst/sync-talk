@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Hash, Plus, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSocket } from "@/hooks/useSocket";
 
 type RoomSidebarProps = {
   chatGroups: ChatRoomProps[];
   setNewRoomPopup: (value: boolean) => void;
   name: string;
-  handleGroupClick: (groupName: string) => void;
+  handleGroupClick: (groupName: string, data: ChatRoomProps) => void;
 };
 
 const RoomSidebar = ({
@@ -20,7 +21,10 @@ const RoomSidebar = ({
   handleGroupClick,
 }: RoomSidebarProps) => {
   const navigate = useNavigate();
-  const handleFindNewRooms = () => {
+  const { closeSocket } = useSocket(null);
+
+  const handleFindNewRooms = async () => {
+    await closeSocket();
     navigate("/rooms");
   };
   return (
@@ -51,7 +55,7 @@ const RoomSidebar = ({
                     key={group?.id}
                     variant={name === group?.name ? "secondary" : "ghost"}
                     className="w-full justify-start gap-2"
-                    onClick={() => handleGroupClick(group?.name)}
+                    onClick={() => handleGroupClick(group?.name, group)}
                   >
                     <Hash className="h-4 w-4" />
                     {group?.name}

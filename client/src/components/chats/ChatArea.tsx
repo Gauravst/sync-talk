@@ -6,9 +6,18 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { File, Hash, MessageCircle, Send, Users } from "lucide-react";
+import {
+  File,
+  Hash,
+  Lock,
+  MessageCircle,
+  Send,
+  Users,
+  Copy,
+  Check,
+} from "lucide-react";
 
-import { MessageProps } from "@/types/messageTypes";
+import { ChatRoomProps, MessageProps } from "@/types/messageTypes";
 import { uploadFile } from "@/services/fileServices";
 import { getOldMessage } from "@/services/chatServices";
 
@@ -19,11 +28,12 @@ import UploadImagePreview from "./UploadImagePreview";
 
 type ChatAreaProps = {
   name: string;
+  roomData: ChatRoomProps;
   isJoined: boolean;
   setIsJoined: (value: boolean) => void;
 };
 
-const ChatArea = ({ name, isJoined, setIsJoined }: ChatAreaProps) => {
+const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -36,7 +46,8 @@ const ChatArea = ({ name, isJoined, setIsJoined }: ChatAreaProps) => {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const [initialized, setInitialized] = useState<boolean>(false);
-  console.log(previewUrl)
+  const [copied, setCopied] = useState(false);
+  console.log(previewUrl);
   console.log(loading);
 
   const { sendMessage, onlineUsers } = useSocket(
@@ -132,6 +143,12 @@ const ChatArea = ({ name, isJoined, setIsJoined }: ChatAreaProps) => {
       console.log("Selected file:", file);
     }
   };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(roomData.code!);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <div className="lg:col-span-2">
       <Card className="h-full border-2 border-muted">
@@ -142,6 +159,29 @@ const ChatArea = ({ name, isJoined, setIsJoined }: ChatAreaProps) => {
                 <div className="flex items-center gap-2">
                   <Hash className="h-5 w-5 text-muted-foreground" />
                   <h3 className="font-semibold">{name}</h3>
+                  {roomData && roomData.userId == user?.id && (
+                    <div className="flex gap-x-2 mx-2">
+                      <Badge variant="outline" className="gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>You are the owner</span>
+                      </Badge>
+                      <Badge variant="outline" className="gap-1">
+                        <Lock className="h-3 w-3" />
+                        Private
+                      </Badge>
+                      <Button
+                        onClick={handleCopy}
+                        title="copy code"
+                        className="flex items-center gap-1 text-sm w-6 h-6"
+                      >
+                        {copied ? (
+                          <Check size={10} className="text-green-500" />
+                        ) : (
+                          <Copy size={10} />
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="gap-1">

@@ -18,6 +18,7 @@ function ChatPage() {
   const navigate = useNavigate();
   const [profilePopup, setProfilePopup] = useState(false);
   const [newRoomPopup, setNewRoomPopup] = useState(false);
+  const [currentOpenRoom, setCurrentOpenRoom] = useState<ChatRoomProps>();
   console.log(loading);
 
   useEffect(() => {
@@ -46,7 +47,8 @@ function ChatPage() {
     fetchRooms();
   }, [name, navigate]);
 
-  const handleGroupClick = (groupName: string) => {
+  const handleGroupClick = (groupName: string, groupData: ChatRoomProps) => {
+    setCurrentOpenRoom(groupData);
     navigate(`/chat/${groupName}`, { replace: true });
   };
 
@@ -84,6 +86,7 @@ function ChatPage() {
           {/* Chat Area */}
           <ChatArea
             name={name!}
+            roomData={currentOpenRoom!}
             isJoined={isJoined}
             setIsJoined={setIsJoined}
           />

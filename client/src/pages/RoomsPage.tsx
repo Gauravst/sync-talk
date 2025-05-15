@@ -142,7 +142,7 @@ function RoomsPage() {
                           </CardTitle>
                           <div className="flex gap-2 mt-2">
                             {/* Owner Tag */}
-                            {room.userId === user.id && (
+                            {room.userId === user?.id && (
                               <Badge
                                 variant="secondary"
                                 className="text-xs cursor-pointer"

@@ -9,6 +9,6 @@ import (
 type WsServer struct {
 	RoomMutex  *sync.Mutex
 	Rooms      map[string][]*websocket.Conn
-	OnlineUser map[string]int
+	OnlineUser map[string]map[string]bool
 	Upgrader   websocket.Upgrader
 }

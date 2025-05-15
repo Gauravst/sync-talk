@@ -67,11 +67,32 @@ func LiveChat(chatService services.ChatService, cfg config.Config, wsServer *mod
 		// Add connection to the room
 		wsServer.RoomMutex.Lock()
 		wsServer.Rooms[roomName] = append(wsServer.Rooms[roomName], conn)
-		wsServer.OnlineUser[roomName]++
+		if wsServer.OnlineUser[roomName] == nil {
+			wsServer.OnlineUser[roomName] = make(map[string]bool)
+		}
+		wsServer.OnlineUser[roomName][userData.Username] = true
+
+		// check user Already in connection so we not get worng online count
+		// if users, ok := wsServer.OnlineUser[roomName]; ok {
+		// 	for _, user := range users {
+		// 		if user != userData.Username {
+		// 			wsServer.OnlineUser[roomName] = append(wsServer.OnlineUser[roomName], userData.Username)
+		// 		}
+		// 	}
+		// }
+
 		wsServer.RoomMutex.Unlock()
 
+		//   count = len()
+		// slog.Info(fmt.Sprintf("Number of conn : %d", count))
+		// users := []string{}
+		// for user := range wsServer.OnlineUser[roomName] {
+		// 	users = append(users, user)
+		// }
+		// slog.Info(fmt.Sprintf("Online users in room %s: %+v", roomName, users))
+
 		// Broadcast the updated online user count
-		go broadcastOnlineUsers(roomName)
+		go broadcastOnlineUsers(roomName, wsServer)
 
 		slog.Info("WebSocket connection established")
 
@@ -110,7 +131,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config, wsServer *mod
 		}
 
 		// remove connection
-		removeConnection(roomName, conn)
+		removeConnection(roomName, conn, wsServer, userData.Username)
 	}
 }
 
@@ -119,7 +140,14 @@ func broadcastOnlineUsers(roomName string, wsServer *models.WsServer) {
 	defer wsServer.RoomMutex.Unlock()
 
 	clients := wsServer.Rooms[roomName]
-	count := wsServer.OnlineUser[roomName]
+	count := len(wsServer.OnlineUser[roomName])
+
+	slog.Info(fmt.Sprintf("Number of online users: %d", count))
+	users := []string{}
+	for user := range wsServer.OnlineUser[roomName] {
+		users = append(users, user)
+	}
+	slog.Info(fmt.Sprintf("Online users in room %s: %+v", roomName, users))
 
 	data := &models.OnlineUserCountRequest{
 		Type:  "onlineUser",
@@ -140,25 +168,27 @@ func broadcastOnlineUsers(roomName string, wsServer *models.WsServer) {
 	}
 }
 
-func removeConnection(roomName string, conn *websocket.Conn) {
-	roomMutex.Lock()
-	defer roomMutex.Unlock()
+func removeConnection(roomName string, conn *websocket.Conn, wsServer *models.WsServer, username string) {
+	wsServer.RoomMutex.Lock()
+	defer wsServer.RoomMutex.Unlock()
 
-	clients := rooms[roomName]
+	clients := wsServer.Rooms[roomName]
 	for i, c := range clients {
 		if c == conn {
-			rooms[roomName] = append(clients[:i], clients[i+1:]...)
+			wsServer.Rooms[roomName] = append(clients[:i], clients[i+1:]...)
 			break
 		}
 	}
 
+	count := len(wsServer.OnlineUser[roomName])
+
 	// decrease the online user count
-	if onlineUser[roomName] > 0 {
-		onlineUser[roomName]--
+	if count > 0 {
+		delete(wsServer.OnlineUser[roomName], username)
 	}
 
 	// Broadcast updated online users count
-	go broadcastOnlineUsers(roomName)
+	go broadcastOnlineUsers(roomName, wsServer)
 }
 
 func GetAllChatRoom(chatService services.ChatService) http.HandlerFunc {
@@ -550,11 +580,6 @@ func GetPrivateChatRoom(chatService services.ChatService) http.HandlerFunc {
 		if err != nil {
 			slog.Error(err.Error())
 			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("Error: something went worng.")))
-			return
-		}
-
-		if !isMember {
-			response.WriteJson(w, http.StatusNotFound, response.GeneralError(fmt.Errorf("Error: You are not a member of this group.")))
 			return
 		}
 

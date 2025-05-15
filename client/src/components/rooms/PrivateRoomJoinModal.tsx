@@ -15,7 +15,7 @@ import { Hash, Users, Lock, Loader2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   getPrivateChatRoom,
-  joinPrivateChatRoom,
+  joinPrivateRoom,
   leaveRoom,
 } from "@/services/chatServices";
 import {
@@ -39,7 +39,7 @@ const PrivateRoomJoinModal = ({ open, setOpen }: ModalProps) => {
   const [roomCode, setRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [disable, setDisable] = useState(true);
-  const [room, setRoom] = useState<PrivateChatRoomProps>();
+  const [room, setRoom] = useState<PrivateChatRoomProps | null>(null);
   const [leaveRoomName, setLeaveRoomName] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
 
@@ -54,6 +54,8 @@ const PrivateRoomJoinModal = ({ open, setOpen }: ModalProps) => {
   const handleDialogToggle = (isOpen: boolean) => {
     if (!isOpen) {
       setRoomCode("");
+      setRoom(null);
+      setSearched(false);
       setLoading(false);
     }
     setOpen(isOpen);
@@ -62,17 +64,18 @@ const PrivateRoomJoinModal = ({ open, setOpen }: ModalProps) => {
   const handleRoomJoinClick = async () => {
     if (room) {
       setLoading(true);
-      await joinPrivateChatRoom(room.name, roomCode);
+      await joinPrivateRoom(roomCode);
       setLoading(false);
       setOpen(false);
+      navigate(`/chat/${room.name}`, { replace: true });
     }
   };
 
   const handleRoomSearchClick = async () => {
     setLoading(true);
     const data = await getPrivateChatRoom(roomCode);
+    setRoom(data || null);
     setSearched(true);
-    setRoom(data);
     setLoading(false);
   };
 
@@ -85,7 +88,9 @@ const PrivateRoomJoinModal = ({ open, setOpen }: ModalProps) => {
       const leaved = await leaveRoom(leaveRoomName);
       setLeaveRoomName(null);
       if (leaved) {
-        setRoom((prev) => (prev.isMember = false));
+        setRoom((prev) =>
+          prev ? { ...prev, isMember: false, members: prev.members - 1 } : null,
+        );
       }
     }
   };
@@ -122,10 +127,8 @@ const PrivateRoomJoinModal = ({ open, setOpen }: ModalProps) => {
       <Dialog open={open} onOpenChange={handleDialogToggle}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Create New Room</DialogTitle>
-            <DialogDescription>
-              Create New Personal Private Room
-            </DialogDescription>
+            <DialogTitle>Join Private Room</DialogTitle>
+            <DialogDescription>Join Private Room Using Code</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">

@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gauravst/real-time-chat/internal/config"
@@ -21,12 +23,20 @@ func Auth(cfg *config.Config, authService services.AuthService) func(http.Handle
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Extract the token from the request headers
+			token := ""
+
 			cookie, err := r.Cookie("accessToken")
-			if err != nil {
-				response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(err))
-				return
+			if err == nil {
+				token = cookie.Value
+			} else {
+				authHeader := r.Header.Get("Authorization")
+				if strings.HasPrefix(authHeader, "Bearer ") {
+					token = strings.TrimPrefix(authHeader, "Bearer ")
+				} else {
+					response.WriteJson(w, http.StatusUnauthorized, response.GeneralError(errors.New("access token not found in cookie or header")))
+					return
+				}
 			}
-			token := cookie.Value
 
 			// If the token is valid, call the next handler
 			// var userData models.User
