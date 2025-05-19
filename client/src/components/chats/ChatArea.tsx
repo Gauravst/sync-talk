@@ -1,30 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import {
-  File,
-  Hash,
-  Lock,
-  MessageCircle,
-  Send,
-  Users,
-  Copy,
-  Check,
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Hash, MessageCircle } from "lucide-react";
 
 import { ChatRoomProps, MessageProps } from "@/types/messageTypes";
-import { uploadFile } from "@/services/fileServices";
-import { getOldMessage } from "@/services/chatServices";
-
 import { useSocket } from "@/hooks/useSocket";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import UploadImagePreview from "./UploadImagePreview";
+import { getOldMessage } from "@/services/chatServices";
+
+import { ImagePreview } from "./ImagePreview";
+import { SelectImagePreview } from "./SelectImagePreview";
+import { ChatAreaHeader } from "./ChatAreaHeader";
+import { ChatAreaFooter } from "./ChatAreaFooter";
 
 type ChatAreaProps = {
   name: string;
@@ -37,16 +27,15 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState<boolean>(true);
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const [initialized, setInitialized] = useState<boolean>(false);
-  const [copied, setCopied] = useState(false);
+  const [previewPopup, setPreviewPopup] = useState(false);
+
   console.log(previewUrl);
   console.log(loading);
 
@@ -92,23 +81,6 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-
-    const newMessageData: MessageProps = {
-      userId: user?.id ?? 0,
-      username: user?.username ?? "Unknown",
-      roomName: name!,
-      content: message,
-      time: Date.now(),
-    };
-
-    sendMessage(JSON.stringify(newMessageData));
-    setMessages((prev) => [...prev, newMessageData]);
-    setMessage("");
-  };
-
   const handleJoinRoom = () => {
     setIsJoined(true);
   };
@@ -117,82 +89,29 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
     navigate("/rooms");
   };
 
-  const handleFileButtonClick = () => {
-    fileInputRef.current?.click();
+  const handleSelectImagePreviewClose = () => {
+    setPreviewUrl(null);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      setPreviewUrl(URL.createObjectURL(file));
-      const response = await uploadFile(file, name!, (progressEvent) => {
-        if (progressEvent.total) {
-          const percent = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total,
-          );
-          setUploadProgress(percent);
-        }
-      });
-      if (response.secureUrl) {
-        setIsUploading(false);
-      }
-
-      //send message here
-      console.log(response.secureUrl);
-      console.log("Selected file:", file);
-    }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(roomData.code!);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
   return (
-    <div className="lg:col-span-2">
-      <Card className="h-full border-2 border-muted">
-        <CardContent className="p-0">
+    <div className="col-span-1 md:col-span-2">
+      <Card className="h-full flex flex-col border-2 border-muted">
+        <CardContent className="p-0 flex-1 relative">
+          <SelectImagePreview
+            url={previewUrl!}
+            open={previewPopup}
+            close={handleSelectImagePreviewClose}
+          />
           {name ? (
             <>
-              <div className="flex items-center justify-between border-b px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Hash className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-semibold">{name}</h3>
-                  {roomData && roomData.userId == user?.id && (
-                    <div className="flex gap-x-2 mx-2">
-                      <Badge variant="outline" className="gap-1">
-                        <Users className="h-3 w-3" />
-                        <span>You are the owner</span>
-                      </Badge>
-                      <Badge variant="outline" className="gap-1">
-                        <Lock className="h-3 w-3" />
-                        Private
-                      </Badge>
-                      <Button
-                        onClick={handleCopy}
-                        title="copy code"
-                        className="flex items-center gap-1 text-sm w-6 h-6"
-                      >
-                        {copied ? (
-                          <Check size={10} className="text-green-500" />
-                        ) : (
-                          <Copy size={10} />
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="gap-1">
-                    <Users className="h-3 w-3" />
-                    <span>{onlineUsers} online</span>
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex h-[calc(100vh-8rem)] flex-col">
-                <ScrollArea className="flex-1 p-4">
+              <ChatAreaHeader
+                user={user!}
+                roomData={roomData}
+                name={name}
+                onlineUsers={onlineUsers}
+              />
+              <div className="flex flex-col h-[calc(100%-70px)]">
+                <ScrollArea className="p-4">
                   {isJoined ? (
                     <div className="space-y-4">
                       {messages.length > 0 ? (
@@ -206,37 +125,39 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
                             } my-2`}
                           >
                             {msg?.userId !== user?.id && (
-                              <Avatar className="mr-2">
+                              <Avatar className="mr-2 cursor-pointer">
                                 <AvatarFallback>
                                   {msg?.username?.slice(0, 2) || "U"}
                                 </AvatarFallback>
                               </Avatar>
                             )}
                             <div
-                              className={`p-3 max-w-[75%] rounded-lg ${
+                              className={`p-1 max-w-[75%] rounded-lg ${
                                 msg?.userId === user?.id
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-foreground"
+                                  ? "bg-primary text-primary-foreground rounded-l-lg rounded-br-2xl rounded-tr-none"
+                                  : "bg-muted text-foreground rounded-r-lg rounded-tl-none rounded-bl-2xl"
                               }`}
                             >
                               {msg?.userId !== user?.id && (
-                                <p className="text-xs font-medium mb-1">
+                                <p className="text-xs font-medium mx-1 mt-1 cursor-pointer hover:underline">
                                   {msg?.username || "User"}
                                 </p>
                               )}
                               {msg?.file && (
-                                <UploadImagePreview
+                                <ImagePreview
                                   file={msg.file}
                                   isUploading={isUploading}
                                   progress={uploadProgress}
                                 />
                               )}
-                              <p className="text-sm">{msg?.content}</p>
+                              {msg?.content && (
+                                <p className="text-sm p-2">{msg?.content}</p>
+                              )}
                             </div>
                           </div>
                         ))
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                        <div className="flex flex-col items-center justify-center h-full mt-20 text-center p-6">
                           <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
                           <h3 className="text-xl font-bold mb-2">
                             No messages yet
@@ -250,7 +171,7 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                      <Hash className="h-12 w-12 text-muted-foreground mb-4" />
+                      <Hash className="h-12 w-12 text-muted-foreground" />
                       <h3 className="text-xl font-bold mb-2">Join {name}</h3>
                       <p className="text-muted-foreground mb-6">
                         You need to join this room to see messages and
@@ -260,45 +181,11 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
                     </div>
                   )}
                 </ScrollArea>
-
-                {isJoined && (
-                  <>
-                    <Separator />
-                    <form
-                      onSubmit={handleSendMessage}
-                      className="p-4 flex space-x-2"
-                    >
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        hidden
-                      />
-                      <Button
-                        size="icon"
-                        type="button"
-                        onClick={handleFileButtonClick}
-                      >
-                        <File className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 min:h-4"
-                      />
-                      <Button type="submit" size="icon">
-                        <Send className="h-4 w-4" />
-                        <span className="sr-only">Send</span>
-                      </Button>
-                    </form>
-                  </>
-                )}
               </div>
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-6">
-              <MessageCircle className="h-16 w-16 text-muted-foreground mb-4 mt-16" />
+              <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-2xl font-bold mb-2">No chat selected</h3>
               <p className="text-muted-foreground mb-6">
                 Select a room from the sidebar or find new rooms to join.
@@ -307,6 +194,21 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
             </div>
           )}
         </CardContent>
+        <CardFooter className="p-0">
+          {isJoined && (
+            <ChatAreaFooter
+              user={user!}
+              sendMessage={sendMessage}
+              setMessages={setMessages}
+              previewUrl={previewUrl!}
+              setPreviewUrl={setPreviewUrl}
+              name={name!}
+              setUploadProgress={setUploadProgress}
+              setIsUploading={setIsUploading}
+              setPreviewPopup={setPreviewPopup}
+            />
+          )}
+        </CardFooter>
       </Card>
     </div>
   );

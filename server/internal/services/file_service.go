@@ -56,25 +56,35 @@ func (s *fileService) UploadFileInRoom(cfg config.Config, filePath string, conte
 		CreatedAt:        uploadResult.CreatedAt,
 	}
 
+	fmt.Print("FILE DATA -----\n")
+	fmt.Print(fileData)
+
 	// add data in db
 	err = s.fileRepo.UploadFileInRoom(fileData)
+	fmt.Print("\nerr1-------\n")
+	fmt.Print(err)
 	if err != nil {
 		return fmt.Errorf("something went worng")
 	}
 
-	data := &models.MessageRequest{
+	data := &models.MessageResponse{
 		Type:     "Chat",
 		UserId:   userData.UserId,
 		Username: userData.Username,
 		RoomName: roomName,
 		Content:  content,
-		File:     fileData.Id,
+		FileId:   &fileData.Id,
 	}
 
 	messageData, err := s.chatRepo.CreateNewMessage(data, roomName)
+	fmt.Print("\nerr2--------\n")
+	fmt.Print(err)
 	if err != nil {
 		return fmt.Errorf("something went worng", err)
 	}
+
+	// adding file data to messageData
+	messageData.File = fileData
 
 	// send data in websoket
 	ws.BroadcastMessage(wsServer, roomName, nil, messageData)

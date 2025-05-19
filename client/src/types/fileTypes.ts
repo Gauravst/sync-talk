@@ -1,5 +1,5 @@
 export type UploadedFileProps = {
-  id: number;
+  id?: number;
   publicId?: string;
   secureUrl?: string;
   format?: string;
@@ -8,6 +8,6 @@ export type UploadedFileProps = {
   width?: number;
   height?: number;
   originalFilename?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 };

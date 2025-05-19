@@ -15,9 +15,9 @@ type HTTPServer struct {
 }
 
 type Cloudinary struct {
-	Name      string `env: "CLOUDINARY_CLOUD_NAME" env-required:"true"`
-	Key       string `env: "CLOUDINARY_API_KEY" env-required:"true"`
-	SecretKey string `env: "CLOUDINARY_API_SECRET" env-required:"true"`
+	Name      string `env:"CLOUDINARY_CLOUD_NAME" env-required:"true"`
+	Key       string `env:"CLOUDINARY_API_KEY" env-required:"true"`
+	SecretKey string `env:"CLOUDINARY_API_SECRET" env-required:"true"`
 }
 
 type Config struct {

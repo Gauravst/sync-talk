@@ -14,7 +14,7 @@ function ChatPage() {
   const { name } = useParams();
   const [chatGroups, setChatGroups] = useState<ChatRoomProps[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [isJoined, setIsJoined] = useState<boolean>(true);
+  const [isJoined, setIsJoined] = useState<boolean>(false);
   const navigate = useNavigate();
   const [profilePopup, setProfilePopup] = useState(false);
   const [newRoomPopup, setNewRoomPopup] = useState(false);
@@ -74,7 +74,7 @@ function ChatPage() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <div className="p-3 fixed w-full grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="p-3 fixed w-full grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Sidebar with Rooms */}
           <RoomSidebar
             chatGroups={chatGroups}

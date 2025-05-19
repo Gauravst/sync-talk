@@ -18,12 +18,13 @@ type ChatRepository interface {
 	DeleteChatRoom(name string) error
 	CreateNewChatRoom(data *models.ChatRoomRequest) error
 	CheckChatRoomMember(userId int, roomName string) (bool, error)
-	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
-	CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageResponse, error)
+	GetOldMessages(roomName string, limit int) ([]*models.MessageResponse, error)
+	CreateNewMessage(data *models.MessageResponse, roomName string) (*models.MessageResponse, error)
 	JoinRoom(data *models.JoinRoomRequest) error
 	JoinPrivateRoom(data *models.JoinRoomRequest) error
 	GetAllJoinRoom(userId int) ([]*models.ChatRoom, error)
 	LeaveRoom(userId int, roomName string) error
+	GetFile(fileId *int) (*models.UploadedFile, error)
 }
 
 // userRepository implements the AuthRepository interface
@@ -132,23 +133,15 @@ func (r *chatRepository) CheckChatRoomMember(userId int, roomName string) (bool,
 	return exists, nil
 }
 
-func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error) {
+func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.MessageResponse, error) {
 	if roomName == "" || limit <= 0 {
 		return nil, errors.New("invalid room name or limit")
 	}
 
-	var messages []*models.MessageRequest
-	query := `
-    SELECT * FROM (
-        SELECT m.id, m.userId, u.username, m.content, m.roomName, m.createdAt, m.updatedAt
-        FROM messages m
-        JOIN users u ON m.userId = u.id
-        WHERE m.roomName = $1
-        ORDER BY m.createdAt DESC
-        LIMIT $2
-    ) subquery
-    ORDER BY createdAt ASC;
-`
+	query, err := r.queries.Get("chat", "GetOldMessages")
+	if err != nil {
+		return nil, err
+	}
 
 	rows, err := r.db.Query(query, roomName, limit)
 	if err != nil {
@@ -156,12 +149,43 @@ func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.M
 	}
 	defer rows.Close()
 
+	var messages []*models.MessageResponse
+
 	for rows.Next() {
-		msg := &models.MessageRequest{}
-		err := rows.Scan(&msg.Id, &msg.UserId, &msg.Username, &msg.Content, &msg.RoomName, &msg.CreatedAt, &msg.UpdatedAt)
+		msg := &models.MessageResponse{}
+		file := &models.UploadedFile{}
+		var fileId sql.NullInt64
+		var publicId, secureUrl, format, resourceType, originalFilename sql.NullString
+		var size sql.NullFloat64
+		var width, height sql.NullInt64
+		var fileCreatedAt, fileUpdatedAt sql.NullTime
+
+		err := rows.Scan(
+			&msg.Id, &msg.UserId, &msg.Username, &msg.Content, &msg.RoomName,
+			&msg.CreatedAt, &msg.UpdatedAt,
+			&fileId, &publicId, &secureUrl, &format, &resourceType, &size,
+			&width, &height, &originalFilename, &fileCreatedAt, &fileUpdatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
+
+		if fileId.Valid {
+			msg.FileId = intPtr(int(fileId.Int64))
+			file.Id = int(fileId.Int64)
+			file.PublicId = publicId.String
+			file.SecureUrl = secureUrl.String
+			file.Format = format.String
+			file.ResourceType = resourceType.String
+			file.Size = size.Float64
+			file.Width = int(width.Int64)
+			file.Height = int(height.Int64)
+			file.OriginalFilename = originalFilename.String
+			file.CreatedAt = fileCreatedAt.Time
+			file.UpdatedAt = fileUpdatedAt.Time
+			msg.File = file
+		}
+
 		messages = append(messages, msg)
 	}
 
@@ -172,20 +196,44 @@ func (r *chatRepository) GetOldMessages(roomName string, limit int) ([]*models.M
 	return messages, nil
 }
 
-func (r *chatRepository) CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageResponse, error) {
-	var message models.MessageResponse
+func intPtr(i int) *int {
+	return &i
+}
 
-	query := `INSERT INTO messages (userId, roomName, content) 
-  VALUES ($1, $2, $3) RETURNING id, userId, roomName, content, createdAt, updatedAt`
-	err := r.db.QueryRow(query, data.UserId, roomName, data.Content).Scan(
-		&message.Id, &message.UserId, &message.RoomName, &message.Content, &message.CreatedAt, &message.UpdatedAt,
-	)
+func (r *chatRepository) CreateNewMessage(data *models.MessageResponse, roomName string) (*models.MessageResponse, error) {
+	message := &models.MessageResponse{}
 
-	if err != nil {
-		return nil, err
+	if data.FileId != nil {
+		query := `
+			INSERT INTO messages (userId, roomName, content, fileId) 
+			VALUES ($1, $2, $3, $4) 
+			RETURNING id, userId, roomName, fileId, content, createdAt, updatedAt
+		`
+
+		err := r.db.QueryRow(query, data.UserId, roomName, data.Content, *data.FileId).Scan(
+			&message.Id, &message.UserId, &message.RoomName, &message.FileId,
+			&message.Content, &message.CreatedAt, &message.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		query := `
+			INSERT INTO messages (userId, roomName, content) 
+			VALUES ($1, $2, $3) 
+			RETURNING id, userId, roomName, fileId, content, createdAt, updatedAt
+		`
+
+		err := r.db.QueryRow(query, data.UserId, roomName, data.Content).Scan(
+			&message.Id, &message.UserId, &message.RoomName, &message.FileId,
+			&message.Content, &message.CreatedAt, &message.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return &message, nil
+	return message, nil
 }
 
 func (r *chatRepository) JoinRoom(data *models.JoinRoomRequest) error {
@@ -244,4 +292,15 @@ func (r *chatRepository) LeaveRoom(userId int, roomName string) error {
 	}
 
 	return nil
+}
+
+func (r *chatRepository) GetFile(fileId *int) (*models.UploadedFile, error) {
+	data := &models.UploadedFile{}
+	query := `SELECT id, publicid, secureurl, format, resourcetype, size, width, height, originalfilename FROM WHERE id = $1`
+	err := r.db.QueryRow(query, fileId).Scan(&data.Id, &data.PublicId, &data.SecureUrl, &data.Format, &data.ResourceType, &data.Size, &data.Width, &data.Height, &data.OriginalFilename)
+	if err != nil {
+		return data, err
+	}
+
+	return data, nil
 }

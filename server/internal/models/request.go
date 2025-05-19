@@ -31,7 +31,7 @@ type MessageRequest struct {
 	Username  string    `json:"username"`
 	RoomName  string    `json:"roomName" validate:"required"`
 	Content   string    `json:"content" validate:"required"`
-	File      int       `json:"file"`
+	FileId    *int      `json:"fileId"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

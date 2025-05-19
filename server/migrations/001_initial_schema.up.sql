@@ -38,6 +38,20 @@ CREATE TABLE groupMembers (
   FOREIGN KEY (roomName) REFERENCES chatRoom (name) ON DELETE CASCADE
 );
 
+CREATE TABLE files (
+  id SERIAL PRIMARY KEY,
+  publicId TEXT,
+  secureUrl TEXT NOT NULL,
+  format TEXT,
+  resourceType TEXT,
+  size DOUBLE PRECISION,
+  width DOUBLE PRECISION,
+  height DOUBLE PRECISION,
+  originalFilename TEXT NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE messages (
   id SERIAL PRIMARY KEY,
   roomName TEXT NOT NULL,
@@ -46,21 +60,7 @@ CREATE TABLE messages (
   fileId INT,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (fileId) REFERENCES files (id) ON DELETE SET NULL,
-);
-
-CREATE TABLE files (
-  id SERIAL PRIMARY KEY,
-  publicId TEXT,
-  secureUrl TEXT NOT NULL,
-  format TEXT,
-  resourceType TEXT,
-  size INT,
-  width INT,
-  height INT,
-  originalFilename TEXT NOT NULL,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (fileId) REFERENCES files (id) ON DELETE SET NULL
 );
 
 INSERT INTO

@@ -26,6 +26,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config, wsServer *mod
 			http.Error(w, "unauthorized user", http.StatusUnauthorized)
 			return
 		}
+		slog.Info("Hit this route")
 
 		// Correct the type assertion to *models.AccessToken
 		userData, ok := userDataRaw.(*models.AccessToken)
@@ -70,6 +71,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config, wsServer *mod
 		if wsServer.OnlineUser[roomName] == nil {
 			wsServer.OnlineUser[roomName] = make(map[string]bool)
 		}
+
 		wsServer.OnlineUser[roomName][userData.Username] = true
 
 		// check user Already in connection so we not get worng online count
@@ -114,7 +116,7 @@ func LiveChat(chatService services.ChatService, cfg config.Config, wsServer *mod
 			}
 
 			// save message in db here
-			newMessageData := &models.MessageRequest{
+			newMessageData := &models.MessageResponse{
 				Type:    "chat",
 				Content: msg.Content,
 				UserId:  currentUser.UserId,

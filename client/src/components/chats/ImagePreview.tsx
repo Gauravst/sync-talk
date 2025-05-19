@@ -6,16 +6,17 @@ type UploadImagePreviewProps = {
   progress: number;
 };
 
-const UploadImagePreview = ({
+export const ImagePreview = ({
   file,
   isUploading,
   progress,
 }: UploadImagePreviewProps) => {
+  console.log("file--", file);
   return (
-    <div className="relative w-48 h-48 rounded overflow-hidden">
+    <div className="relative w-48 h-48 rounded overflow-hidden cursor-pointer">
       <img
         src={file.secureUrl}
-        className="object-cover w-full h-full opacity-70"
+        className={`object-cover w-full h-full ${isUploading && "opacity-70"}`}
       />
 
       {/* Loading Overlay */}
@@ -32,5 +33,3 @@ const UploadImagePreview = ({
     </div>
   );
 };
-
-export default UploadImagePreview;

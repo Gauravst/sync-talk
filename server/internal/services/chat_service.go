@@ -17,8 +17,8 @@ type ChatService interface {
 	DeleteChatRoom(name string) error
 	CreateNewChatRoom(data *models.ChatRoomRequest) error
 	CheckChatRoomMember(userId int, roomName string) (bool, error)
-	GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error)
-	CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageResponse, error)
+	GetOldMessages(roomName string, limit int) ([]*models.MessageResponse, error)
+	CreateNewMessage(data *models.MessageResponse, roomName string) (*models.MessageResponse, error)
 	JoinRoom(data *models.JoinRoomRequest) error
 	JoinPrivateRoom(code string, userData *models.AccessToken) error
 	GetAllJoinRoom(userId int) ([]*models.ChatRoom, error)
@@ -110,8 +110,8 @@ func (s *chatService) CheckChatRoomMember(userId int, roomName string) (bool, er
 	return exists, nil
 }
 
-func (s *chatService) GetOldMessages(roomName string, limit int) ([]*models.MessageRequest, error) {
-	var data []*models.MessageRequest
+func (s *chatService) GetOldMessages(roomName string, limit int) ([]*models.MessageResponse, error) {
+	var data []*models.MessageResponse
 	data, err := s.chatRepo.GetOldMessages(roomName, limit)
 	if err != nil {
 		return nil, err
@@ -119,11 +119,13 @@ func (s *chatService) GetOldMessages(roomName string, limit int) ([]*models.Mess
 	return data, nil
 }
 
-func (s *chatService) CreateNewMessage(data *models.MessageRequest, roomName string) (*models.MessageResponse, error) {
+func (s *chatService) CreateNewMessage(data *models.MessageResponse, roomName string) (*models.MessageResponse, error) {
 	messageData, err := s.chatRepo.CreateNewMessage(data, roomName)
 	if err != nil {
 		return nil, err
 	}
+
+	messageData.File = nil
 	return messageData, nil
 }
 

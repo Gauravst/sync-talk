@@ -92,7 +92,7 @@ func main() {
 	router.HandleFunc("/chat/{roomName}", handlers.LiveChat(chatService, *cfg, wsServer))
 
 	// upload files
-	router.HandleFunc("POST /api/chat/upload/{name}", handlers.UploadFileInRoom(fileService, *cfg, wsServer))
+	router.HandleFunc("POST /api/chat/upload/{roomName}", handlers.UploadFileInRoom(fileService, *cfg, wsServer))
 	// get old chats for a room
 	router.HandleFunc("GET /api/chat/{roomName}/{limit}", handlers.GetOldChats(chatService))
 

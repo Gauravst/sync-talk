@@ -20,6 +20,7 @@ type MessageResponse struct {
 	RoomName  string        `json:"roomName" validate:"required"`
 	Content   string        `json:"content" validate:"required"`
 	File      *UploadedFile `json:"file,omitempty"`
+	FileId    *int          `json:"fileId,omitempty"`
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
 }

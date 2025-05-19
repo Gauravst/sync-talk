@@ -70,6 +70,7 @@ export const getOldMessage = async (
 ): Promise<MessageProps[]> => {
   try {
     const response = await api.get(`/chat/${roomName}/${limit}`);
+    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error geting old chat rooms:", error);
