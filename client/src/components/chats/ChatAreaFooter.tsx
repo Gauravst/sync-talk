@@ -4,7 +4,7 @@ import { UserProps } from "@/types";
 import { MessageProps } from "@/types/messageTypes";
 import { Button } from "@/components/ui/button";
 import { File, Send, Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { uploadFile } from "@/services/fileServices";
 
 type ChatAreaFooterProps = {
@@ -32,12 +32,16 @@ export const ChatAreaFooter = ({
 }: ChatAreaFooterProps) => {
   const [message, setMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [fileCloseButton, setFileCloseButton] = useState(false);
+  const [file2, setFile] = useState<File | null>(null);
+  const [fileCloseButton, setFileCloseButton] = useState(!!previewUrl);
+
+  useEffect(() => {
+    setFileCloseButton(!!previewUrl);
+  }, [previewUrl]);
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!file) {
+    if (!file2) {
       if (!message.trim()) return;
     }
 
@@ -49,21 +53,13 @@ export const ChatAreaFooter = ({
       time: Date.now(),
     };
 
-    // if (previewUrl) {
-    //   URL.revokeObjectURL(previewUrl);
-    // }
-
-    if (file) {
-      newMessageData.content = "";
+    if (file2) {
       newMessageData.file = {
         secureUrl: previewUrl,
       };
     }
 
-    console.info("content--------");
-    console.log(newMessageData.content);
-
-    if (!file) {
+    if (!file2) {
       sendMessage(JSON.stringify(newMessageData));
     }
     setMessages((prev: MessageProps[]) => {
@@ -74,11 +70,10 @@ export const ChatAreaFooter = ({
     setPreviewPopup(false);
     setFileCloseButton(false);
 
-    //image upload here
     setIsUploading(true);
-    if (file) {
+    if (file2) {
       const response = await uploadFile(
-        file!,
+        file2!,
         name!,
         newMessageData.content,
         (progressEvent) => {
@@ -94,12 +89,16 @@ export const ChatAreaFooter = ({
         setIsUploading(false);
       }
     }
+
+    console.log("new message");
+    console.log(newMessageData);
   };
 
   const handleFileButtonClick = () => {
-    if (file) {
+    if (fileCloseButton) {
       setPreviewUrl(null);
       setFile(null);
+      setFileCloseButton(false);
     } else {
       fileInputRef.current?.click();
     }
@@ -109,11 +108,11 @@ export const ChatAreaFooter = ({
     const file = e.target.files?.[0];
     if (file) {
       setFileCloseButton(true);
-      setIsUploading(true);
       setPreviewUrl(URL.createObjectURL(file));
       setFile(file);
       setPreviewPopup(true);
-      console.log("Selected file:", file);
+    } else {
+      setFileCloseButton(false);
     }
   };
 

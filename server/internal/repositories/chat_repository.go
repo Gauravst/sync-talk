@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/gauravst/real-time-chat/internal/database"
@@ -72,15 +73,44 @@ func (r *chatRepository) GetAllChatRoom(userData *models.AccessToken) ([]*models
 
 func (r *chatRepository) GetPrivateChatRoom(code string) (*models.ChatRoom, error) {
 	data := &models.ChatRoom{}
-	query, err := r.queries.Get("chat", "GetPrivateRoomUsingCode")
+
+	// Load SQL query string
+	// query, err := r.queries.Get("chat", "GetPrivateRoomUsingCode")
+	query := `SELECT
+  cr.id,
+  cr.name,
+  cr.private,
+  cr.description,
+  cr.userid,
+  COUNT(gm.id) AS members
+FROM
+  chatroom cr
+  LEFT JOIN groupMembers gm ON cr.name = gm.roomName
+WHERE
+  cr.private = true
+  AND cr.code = $1
+GROUP BY
+  cr.id;
+`
+	// if err != nil {
+	// 	fmt.Println("Error loading query:", err)
+	// 	return nil, err
+	// }
+	//
+	// Execute the query
+	err := r.db.QueryRow(query, code).Scan(
+		&data.Id,
+		&data.Name,
+		&data.Private,
+		&data.Description,
+		&data.UserId,
+		&data.Members,
+	)
 	if err != nil {
+		fmt.Println("Query execution error:", err)
 		return nil, err
 	}
 
-	err = r.db.QueryRow(query, code).Scan(&data.Id, &data.Name, &data.Private, &data.Description, &data.UserId, &data.Members)
-	if err != nil {
-		return data, err
-	}
 	return data, nil
 }
 

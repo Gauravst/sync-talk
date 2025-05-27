@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,8 +35,6 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [initialized, setInitialized] = useState<boolean>(false);
   const [previewPopup, setPreviewPopup] = useState(false);
-
-  console.log(previewUrl);
   console.log(loading);
 
   const { sendMessage, onlineUsers } = useSocket(
@@ -78,7 +76,11 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
   }, [name]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const timeout = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100); // slight delay for image rendering
+
+    return () => clearTimeout(timeout);
   }, [messages]);
 
   const handleJoinRoom = () => {
@@ -93,29 +95,34 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
     setPreviewUrl(null);
   };
 
+  const handleImageClick = (url: string) => {
+    setPreviewPopup(true);
+    setPreviewUrl(url);
+  };
+
   return (
-    <div className="col-span-1 md:col-span-2">
-      <Card className="h-full flex flex-col border-2 border-muted">
-        <CardContent className="p-0 flex-1 relative">
-          <SelectImagePreview
-            url={previewUrl!}
-            open={previewPopup}
-            close={handleSelectImagePreviewClose}
-          />
-          {name ? (
-            <>
-              <ChatAreaHeader
-                user={user!}
-                roomData={roomData}
-                name={name}
-                onlineUsers={onlineUsers}
-              />
-              <div className="flex flex-col h-[calc(100%-70px)]">
-                <ScrollArea className="p-4">
-                  {isJoined ? (
-                    <div className="space-y-4">
-                      {messages.length > 0 ? (
-                        messages.map((msg, index) => (
+    <div className="col-span-1 md:col-span-2 h-[calc(100vh-80px)]">
+      <Card className="h-full flex relative flex-col border-2 border-muted">
+        {name ? (
+          <>
+            <ChatAreaHeader
+              user={user!}
+              roomData={roomData}
+              name={name}
+              onlineUsers={onlineUsers}
+            />
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <ScrollArea className="px-4 h-full">
+                <SelectImagePreview
+                  url={previewUrl!}
+                  open={previewPopup}
+                  close={handleSelectImagePreviewClose}
+                />
+                {isJoined ? (
+                  <div className="space-y-4">
+                    {messages.length > 0 ? (
+                      <>
+                        {messages.map((msg, index) => (
                           <div
                             key={index}
                             className={`flex ${
@@ -134,8 +141,8 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
                             <div
                               className={`p-1 max-w-[75%] rounded-lg ${
                                 msg?.userId === user?.id
-                                  ? "bg-primary text-primary-foreground rounded-l-lg rounded-br-2xl rounded-tr-none"
-                                  : "bg-muted text-foreground rounded-r-lg rounded-tl-none rounded-bl-2xl"
+                                  ? "bg-primary text-primary-foreground rounded-l-lg rounded-br-lg rounded-tr-lg"
+                                  : "bg-muted text-foreground rounded-r-lg rounded-tl-lg rounded-bl-lg"
                               }`}
                             >
                               {msg?.userId !== user?.id && (
@@ -148,6 +155,10 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
                                   file={msg.file}
                                   isUploading={isUploading}
                                   progress={uploadProgress}
+                                  handleImageClick={handleImageClick}
+                                  className={
+                                    msg?.userId !== user?.id ? "mt-2" : ""
+                                  }
                                 />
                               )}
                               {msg?.content && (
@@ -155,45 +166,45 @@ const ChatArea = ({ name, roomData, isJoined, setIsJoined }: ChatAreaProps) => {
                               )}
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full mt-20 text-center p-6">
-                          <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                          <h3 className="text-xl font-bold mb-2">
-                            No messages yet
-                          </h3>
-                          <p className="text-muted-foreground">
-                            Be the first to start the conversation in this room!
-                          </p>
-                        </div>
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                      <Hash className="h-12 w-12 text-muted-foreground" />
-                      <h3 className="text-xl font-bold mb-2">Join {name}</h3>
-                      <p className="text-muted-foreground mb-6">
-                        You need to join this room to see messages and
-                        participate in the conversation.
-                      </p>
-                      <Button onClick={handleJoinRoom}>Join Room</Button>
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center p-6">
-              <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-2xl font-bold mb-2">No chat selected</h3>
-              <p className="text-muted-foreground mb-6">
-                Select a room from the sidebar or find new rooms to join.
-              </p>
-              <Button onClick={handleFindNewRooms}>Find Rooms</Button>
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full mt-20 text-center p-6">
+                        <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-xl font-bold mb-2">
+                          No messages yet
+                        </h3>
+                        <p className="text-muted-foreground">
+                          Be the first to start the conversation in this room!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                    <Hash className="h-12 w-12 text-muted-foreground" />
+                    <h3 className="text-xl font-bold mb-2">Join {name}</h3>
+                    <p className="text-muted-foreground mb-6">
+                      You need to join this room to see messages and participate
+                      in the conversation.
+                    </p>
+                    <Button onClick={handleJoinRoom}>Join Room</Button>
+                  </div>
+                )}
+              </ScrollArea>
             </div>
-          )}
-        </CardContent>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-2xl font-bold mb-2">No chat selected</h3>
+            <p className="text-muted-foreground mb-6">
+              Select a room from the sidebar or find new rooms to join.
+            </p>
+            <Button onClick={handleFindNewRooms}>Find Rooms</Button>
+          </div>
+        )}
         <CardFooter className="p-0">
           {isJoined && (
             <ChatAreaFooter

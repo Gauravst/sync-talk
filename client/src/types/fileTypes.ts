@@ -10,4 +10,5 @@ export type UploadedFileProps = {
   originalFilename?: string;
   createdAt?: string;
   updatedAt?: string;
+  isUploading?: boolean;
 };

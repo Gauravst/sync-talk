@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { ChatRoomProps } from "@/types/messageTypes";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { Hash, Plus, Search } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "@/hooks/useSocket";
+import { useAuth } from "@/context/AuthContext";
 
 type RoomSidebarProps = {
   chatGroups: ChatRoomProps[];
@@ -20,6 +23,7 @@ const RoomSidebar = ({
   name,
   handleGroupClick,
 }: RoomSidebarProps) => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { closeSocket } = useSocket(null);
 
@@ -59,6 +63,23 @@ const RoomSidebar = ({
                   >
                     <Hash className="h-4 w-4" />
                     {group?.name}
+
+                    {group.userId == user?.id && (
+                      <div className="flex gap-x-2 mx-2">
+                        <Badge
+                          variant="outline"
+                          className="gap-1 bg-background"
+                        >
+                          <span>You are the owner</span>
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="gap-1 bg-background"
+                        >
+                          Private
+                        </Badge>
+                      </div>
+                    )}
                   </Button>
                 ))}
               </div>
