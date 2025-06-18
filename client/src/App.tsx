@@ -7,6 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import RoomsPage from "./pages/RoomsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { Toaster } from "@/components/ui/sonner";
 
 const App = () => {
   return (
@@ -28,6 +29,7 @@ const App = () => {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
+        <Toaster />
       </AuthProvider>
     </ThemeProvider>
   );

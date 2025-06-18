@@ -12,3 +12,7 @@ export type UploadedFileProps = {
   updatedAt?: string;
   isUploading?: boolean;
 };
+
+export type UploadedFileResponseProps = {
+  success: string;
+};

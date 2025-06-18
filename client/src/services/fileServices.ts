@@ -1,5 +1,5 @@
 import api from "./api";
-import { UploadedFileProps } from "@/types/fileTypes";
+import { UploadedFileResponseProps } from "@/types/fileTypes";
 import { AxiosProgressEvent } from "axios";
 
 // upload file in chat
@@ -8,12 +8,11 @@ export const uploadFile = async (
   roomName: string,
   message: string,
   onUploadProgress: (progressEvent: AxiosProgressEvent) => void,
-): Promise<UploadedFileProps> => {
+): Promise<UploadedFileResponseProps> => {
   try {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("message", message);
-    console.log("messssssssssss..", message);
 
     const response = await api.post(`/chat/upload/${roomName}`, formData, {
       onUploadProgress,

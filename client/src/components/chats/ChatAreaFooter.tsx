@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { File, Send, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { uploadFile } from "@/services/fileServices";
+import { toast } from "sonner";
 
 type ChatAreaFooterProps = {
   user: UserProps;
@@ -85,13 +86,14 @@ export const ChatAreaFooter = ({
           }
         },
       );
-      if (response.secureUrl) {
+      if (response.success == "ok") {
+        setIsUploading(false);
+        toast.success("Image uploaded successfully");
+      } else {
+        toast.error("Oops! Failed to upload image");
         setIsUploading(false);
       }
     }
-
-    console.log("new message");
-    console.log(newMessageData);
   };
 
   const handleFileButtonClick = () => {
