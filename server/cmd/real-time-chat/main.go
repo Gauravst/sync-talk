@@ -64,7 +64,7 @@ func main() {
 	}
 
 	// health api
-	publicRouter.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+	publicRouter.HandleFunc("GET /api/auth/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
