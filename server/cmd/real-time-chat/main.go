@@ -63,6 +63,12 @@ func main() {
 		},
 	}
 
+	// health api
+	publicRouter.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
 	// Public routes (No Auth)
 	publicRouter.HandleFunc("POST /api/auth/login", handlers.LoginUser(authService, *cfg))
 	publicRouter.HandleFunc("POST /api/auth/loginWithoutAuth", handlers.LoginWithoutAuth(authService, *cfg))
